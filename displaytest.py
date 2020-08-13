@@ -7,7 +7,7 @@ import fonts.glcdfont
 import fonts.tt14
 import fonts.tt24
 import fonts.tt32
-from time import sleep
+from time import sleep_ms
 
 # Adapted for Sensemakers. Changed pins for the TTGO T$-V1.3 board
 from display import create_display
@@ -32,8 +32,9 @@ for ff, col in zip(fonts, colors):
     display.print(text)
 
 while True:
-    lum = 0
-    for _ in range(5):
-        lum += 200
-        bg_led.duty(lum)
-        sleep(2)
+    for lum in range(50):
+        bg_led.duty(lum*20)
+        sleep_ms(25)
+    for lum in reversed(range(50)):
+        bg_led.duty(lum*20)
+        sleep_ms(25)
