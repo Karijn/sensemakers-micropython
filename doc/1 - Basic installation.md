@@ -7,11 +7,21 @@ Look for Firmware built with ESP-IDF v3.x, with support for BLE, LAN and PPP and
 At the time of writing we use:
 “esp32spiram-idf3-20191220-v1.12.bin”
 
+## Windows specific installation
+
 I use com port com7 in this document
 
 esptool.py --chip esp32 --port com7 erase_flash
 
 esptool.py --chip esp32 --port com7 --baud 460800 write_flash -z 0x1000 esp32spiram-idf3-20191220-v1.12.bin
+
+## Linux specific installation
+
+tbd.
+
+## Mac specific installation
+
+tbd.
 
 # Download the workshop files to your computer
 
@@ -70,3 +80,5 @@ and import displaytest.py
 ![](images/starting-repl.png "starting rshell")
 
 now the ttgo's display shoud show "Now is the time for all Sensemakers to come to the aid of the party." in different fonts and colors.
+
+![Display demo, showing different fonts in different colors](images/displaydemo.png "Display demo")
