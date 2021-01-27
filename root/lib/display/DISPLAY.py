@@ -9,7 +9,7 @@ _display = None
 _touch = None
 SLOW_SPI = const(1)
 FAST_SPI = const(2)
-
+_calibration = None
 
 def color(r, g, b):
   return color565(r, g, b)
@@ -19,10 +19,11 @@ def gettouch():
     global _spi
     global _speed
     global _rotation
+    global _calibration
     if _spi is None or _speed != SLOW_SPI:
         _spi = getspi(SLOW_SPI)
     if _touch is None :
-        _touch = TOUCH(spi=_spi)
+        _touch = TOUCH(spi=_spi, calibration=_calibration)
     else:
         _touch.spi = _spi
     _touch.set_rotation(_rotation)

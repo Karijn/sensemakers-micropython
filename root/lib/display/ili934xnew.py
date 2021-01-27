@@ -400,6 +400,18 @@ class ILI9341:
       curx = self._x; cury = self.next_line(cury, char_h)
     self._y = cury
 
+  def get_stringsize(self, s):
+      hor = 0
+      for c in s:
+          fontptr, vert, cols = self._font.get_ch(ord(c))
+          hor += cols
+      return hor, vert
+
+  def print_centered(self, x, y, s):
+      length, height = self.get_stringsize(s)
+      self.set_pos(x - length // 2, y - height // 2)
+      self.print(s)
+
   def get_screensize(self):
     return self.width, self.height 
 

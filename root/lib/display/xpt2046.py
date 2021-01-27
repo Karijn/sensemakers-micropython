@@ -74,7 +74,7 @@ class TOUCH:
             loop = asyncio.get_event_loop()
             loop.create_task(self._main_thread())
 
-    def set_rotation(rotation):
+    def set_rotation(self, rotation):
         self.rotation = rotation
 
 
