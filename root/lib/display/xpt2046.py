@@ -38,6 +38,14 @@ T_GETZ2 = const(0xc8)  ## 8 bit resolution
 X_LOW  = const(10)     ## lowest reasonable X value from the touchpad
 Y_HIGH = const(4090)   ## highest reasonable Y value
 
+
+try:
+  from config.touch import touch_calibrate
+  print('touch config loaded: ')
+except:
+  print('/config/touch.py not found')
+  touch_calibrate =  (-331,  0.06685,-366,   0.06873,-432,  0.09323,  -437,  0.09545)
+
 class TOUCH:
 #
 # Init just sets the PIN's to In / out as required
@@ -65,7 +73,7 @@ class TOUCH:
         self.y = 0
         self.buf_length = 0
         self.rotation = 1
-        cal = TOUCH.DEFAULT_CAL if calibration is None else calibration
+        cal = touch_calibrate if calibration is None else calibration
         self.asynchronous = False
         self.touch_parameter(confidence, margin, delay, cal)
         if asyn:

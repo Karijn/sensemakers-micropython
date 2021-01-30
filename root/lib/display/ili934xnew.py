@@ -133,7 +133,9 @@ class ILI9341:
     self.scroll(0)
 
   def set_font(self, font):
+    ret = self._font
     self._font = font
+    return ret
 
   def init(self):
     for command, data in (
@@ -226,7 +228,6 @@ class ILI9341:
     # Handle any passed data
     if len(args) > 0:
       self.write_data(bytearray(args))
-
 
   def write_data(self, data):
     self.dc(1)
@@ -733,8 +734,6 @@ class ILI9341:
     self.draw_vline(x, y, h, color)
     self.draw_vline(x2, y, h, color)
 
-
-
   def is_off_grid(self, xmin, ymin, xmax, ymax):
     """Check if coordinates extend past display boundaries.
 
@@ -904,23 +903,22 @@ class ILI9341:
              x + w - 1, chunk_y + remainder - 1,
              buf)
 
-  # def fill_rectangle(self, x, y, w, h, color):
-  #   """Draw a filled rectangle.
+  def fill_rectangle(self, x, y, w, h, color):
+    """Draw a filled rectangle.
 
-  #   Args:
-  #     x (int): Starting X position.
-  #     y (int): Starting Y position.
-  #     w (int): Width of rectangle.
-  #     h (int): Height of rectangle.
-  #     color (int): RGB565 color value.
-  #   """
-  #   if self.is_off_grid(x, y, x + w - 1, y + h - 1):
-  #     return
-  #   if w > h:
-  #     self.fill_hrect(x, y, w, h, color)
-  #   else:
-  #     self.fill_vrect(x, y, w, h, color)
-
+    Args:
+      x (int): Starting X position.
+      y (int): Starting Y position.
+      w (int): Width of rectangle.
+      h (int): Height of rectangle.
+      color (int): RGB565 color value.
+    """
+    if self.is_off_grid(x, y, x + w - 1, y + h - 1):
+      return
+    if w > h:
+      self.fill_hrect(x, y, w, h, color)
+    else:
+      self.fill_vrect(x, y, w, h, color)
 
   def load_sprite(self, path, w, h):
     """Load sprite image.
@@ -983,7 +981,6 @@ class ILI9341:
         self._writeblock(x, chunk_y,
                x2, chunk_y + remainder - 1,
                buf)
-
 
   def set_scroll_window(self, top, bottom):
     """Set the height of the top and bottom scroll margins.

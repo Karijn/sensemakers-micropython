@@ -21,18 +21,23 @@ class INITBOARD:
     return True if answeri == 1 else False
 
   def initboard(self):
-
     self.initnetwork()
     self.inittouch()
-
-    self.updateboot()
-
 
   def initnetwork(self):
     self.selectnetwork = self.yesno('Select network?') 
     if self.selectnetwork:
       self.ssid   = input('Enter SSID     : ')
       self.passwd = input('Enter Password : ')
+
+      f = open('/config/connect.py', "wt")
+      f.write('import network\n')
+      f.write('sta_if = network.WLAN(network.STA_IF)\n')
+      f.write('sta_if.active(True)\n')
+      f.write('sta_if.connect("{}", "{}")\n'.format(self.ssid, self.passwd))
+
+      f.close()
+      print('_connect.py updated')
 
   def inittouch(self):
     if self.yesno('calibrate touchpanel'):
@@ -41,35 +46,7 @@ class INITBOARD:
       self.selecttouch = True
       self.calibration = calibrate.calibrate() 
       print(self.calibration)
-
-  def updateboot(self):
-    path = 'boot.py'
-    changed = False
-    lines = []
-    f = open(path, "r")
-    for line in f:
-      line = ure.sub("[\n\r]", "", line)
-      if self.selectnetwork:
-        line = ure.sub("sta_if\.connect.*$", "sta_if\.connect('{}', '{}')".format(self.ssid, self.passwd), line)
-        changed = True
-      lines.append(line)
-    f.close()
-
-    for line in lines:
-      print(line)
-    
-    print()
-    print('-----------------------------------------------')
-    print('-----------------------------------------------')
-    print()
-
-    if changed and self.yesno('update boot.py'):
-      f = open(path, "w")
-      for line in lines:
-        f.write(line)
-        f.write('\n')
-      f.close()
-      print('boot.py updated')
-
+      f = open('/config/touch.py', "wt")
+      f.write('touch_calibrate = {}\n'.format(self.calibration))
 x = INITBOARD()
 x.initboard()
