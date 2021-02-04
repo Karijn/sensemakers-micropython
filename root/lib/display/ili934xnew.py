@@ -434,7 +434,6 @@ class ILI9341:
   def get_screensize(self):
     return self.width, self.height 
 
-#############################################################
   def draw_circle(self, x0, y0, r, color):
     """Draw a circle.
 
@@ -640,7 +639,7 @@ class ILI9341:
         p += a2 - py + px
       self.draw_line(x0 + x, y0 - y, x0 + x, y0 + y, color)
       self.draw_line(x0 - x, y0 - y, x0 - x, y0 + y, color)
-##
+
   def draw_line(self, x1, y1, x2, y2, color):
     """Draw a line using Bresenham's algorithm.
 
