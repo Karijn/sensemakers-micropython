@@ -77,6 +77,6 @@ def getspi(speed = FAST_SPI):
       _spi = SPI(2, baudrate=2000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
     if speed == FAST_SPI:
       #print("SWITCH SPI to FAST")
-      _spi = SPI(2, baudrate=40000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
+      _spi = SPI(2, baudrate=20000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
     _speed = speed
   return _spi

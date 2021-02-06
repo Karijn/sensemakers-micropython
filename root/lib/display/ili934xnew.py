@@ -1006,3 +1006,87 @@ class ILI9341:
       y (int): Number of pixels to scroll display.
     """
     self.write_cmd_args(self.VSCRSADD, y >> 8, y & 0xFF)
+
+
+  def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
+    """Draw a circle.
+
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+
+    self.draw_hline(x0 + r, y0    , 2 + w - 2 * r, color)
+    self.draw_hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
+    self.draw_vline(x0    , y0 + r, 2 + h - 2 * r, color)
+    self.draw_vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
+
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+
+      # Top-Left
+      self.pixel(x0 - x + r, y0 - y + r, color)
+      self.pixel(x0 - y + r, y0 - x + r, color)
+
+      # Top-Right
+      self.pixel(x0 + w + x - r - 1, y0 - y + r, color)
+      self.pixel(x0 + w + y - r - 1, y0 - x + r, color)
+
+      # Bottom-Left
+      self.pixel(x0 - x + r, y0 + h + y - r - 1, color)
+      self.pixel(x0 - y + r, y0 + h + x - r - 1, color)
+
+      # Bottom-Right
+      self.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
+      self.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
+
+
+  def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
+    """Draw a filled circle.
+
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+    
+    w2 = int(w - 2 * r)
+    h2 = int(h - 2 * r)
+
+    self.fill_rectangle(x0 + r, y0, w2, h, color)
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+      
+      # Left
+      self.draw_vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
+      self.draw_vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
+
+      #right 1
+      self.draw_vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
+      #right 2
+      self.draw_vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)
