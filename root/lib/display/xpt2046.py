@@ -60,7 +60,7 @@ class TOUCH:
   DEFAULT_CAL = (-331,  0.06685,-366,   0.06873,-432,  0.09323,  -437,  0.09545)
 
   def __init__(self, controller="XPT2046", asyn=False, *, confidence=5, margin=50, delay=10, spi=None, rotation=None):
-    print('int new TOUCH')
+    print('int new TOUCH, rotation=', rotation)
 
     # if spi is None:
     #   self.spi = getspi(SLOW_SPI)
@@ -222,32 +222,32 @@ class TOUCH:
 
     #print(" rotation {} (x, y) ({}, {})".format(self.rotation, x, y), end="")
     if self.rotation == 0:
-      x = 240-x
+      x = x
       y = y
     elif self.rotation == 1:
       t = y
-      y = x
+      y = 240 -x
       x = t
     elif self.rotation == 2:
-      x = x
+      x = 240 - x
       y = 320 - y
     elif self.rotation == 3:
       t = 320 - y
-      y = 240 - x
+      y = x
       x = t
     elif self.rotation == 4:
-      x = 240-x
+      x = x
       y = 320-y
     elif self.rotation == 5:
       t = y
-      y = 240-x
+      y = x
       x = t
     elif self.rotation == 6:
-      x = x
+      x = 240-x
       y = y
     else: # 7
       t = 320 - y
-      y = x
+      y = 240-x
       x = t
 
     #print("(x, y) (", x, ", ", y, ")")

@@ -237,15 +237,15 @@ class ILI9341:
 
   ## Done
   def _writeblock(self, x0, y0, x1, y1, data=None):
-    self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
-    self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
-    self .write_cmd(self.WRITE_RAM, data)
+    self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    self.write_cmd(self.WRITE_RAM, data)
 
   def _readblock(self, x0, y0, x1, y1):
     self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
     self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
-    if data is None:
-      return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
+    #if data is None:
+    return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
 
   def _read(self, command, count):
     self.dc(0)

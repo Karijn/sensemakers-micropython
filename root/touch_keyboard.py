@@ -107,9 +107,7 @@ class TouchKeyboard(object):
                 else:
                     column = 1
 
-            key = self.KEYS[self.kb_screen][row][column]
-
-            return key
+            return self.KEYS[self.kb_screen][row][column]
         return None
 
     def handle_key(self, key):

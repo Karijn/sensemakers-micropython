@@ -28,7 +28,7 @@ def gettouch():
   if _spi is None or _speed != SLOW_SPI:
     _spi = getspi(SLOW_SPI)
   if _touch is None:
-    print('get new TOUCH')
+    print('get new TOUCH, rotation = ', _rotation)
     _touch = TOUCH(spi=_spi, rotation=_rotation)
   else:
     _touch.spi = _spi
@@ -48,18 +48,21 @@ def getdisplay(rotation=None):
     _rotation=rotation
 
   if _display is None:
+    print('get new display, rotation = ', _rotation)
     _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
   else:
     _display.spi = _spi
     if _rotation != _oldrotation:
-      _display.rotation = _rotation
-      _display.reset()
-      _display.init()
-      _display._scroll = 0
-      _display._colormap = bytearray(b'\x00\x00\xFF\xFF') #default white foregraound, black background
-      _display._x = 0
-      _display._y = 0
-      _display.scrolling = False
+      print('get new display, rotation = ', _rotation)
+      _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+      # _display.rotation = _rotation
+      # _display.reset()
+      # _display.init()
+      # _display._scroll = 0
+      # _display._colormap = bytearray(b'\x00\x00\xFF\xFF') #default white foregraound, black background
+      # _display._x = 0
+      # _display._y = 0
+      # _display.scrolling = False
 
   _oldrotation = _rotation
   return _display
