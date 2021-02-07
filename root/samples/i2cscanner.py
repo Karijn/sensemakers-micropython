@@ -84,5 +84,4 @@ def i2ctester(twodigit=True):
 
         time.sleep_ms(1000)
 
-if __name__ == "__main__":
-    i2ctester()
+i2ctester()
