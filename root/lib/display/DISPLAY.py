@@ -1,6 +1,6 @@
 from machine import Pin, SPI
 from lib.display.xpt2046 import TOUCH
-from lib.display.ili934xnew import ILI9341, color565
+from lib.display.ili934xnew import ILI9341
 
 _oldrotation = -1
 _rotation = 0
@@ -11,8 +11,14 @@ _touch = None
 SLOW_SPI = const(1)
 FAST_SPI = const(2)
 
-def color(r, g, b):
-  return color565(r, g, b)
+_debugspi = False
+
+def color565(r, g, b):
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
+
+def setdebugspi(enable):
+  global _debugspi
+  _debugspi = enable
 
 def setrotation(rotation):
   global _rotation
@@ -55,28 +61,22 @@ def getdisplay(rotation=None):
     if _rotation != _oldrotation:
       print('get new display, rotation = ', _rotation)
       _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
-      # _display.rotation = _rotation
-      # _display.reset()
-      # _display.init()
-      # _display._scroll = 0
-      # _display._colormap = bytearray(b'\x00\x00\xFF\xFF') #default white foregraound, black background
-      # _display._x = 0
-      # _display._y = 0
-      # _display.scrolling = False
-
   _oldrotation = _rotation
   return _display
 
 def getspi(speed = FAST_SPI):
   global _spi
   global _speed
+  global _debugspi
   if _spi is None or _speed != speed:
-    if speed == SLOW_SPI:
-      #print("SWITCH SPI to SLOW")
+    if speed == FAST_SPI:
+      if _debugspi:
+        print("SWITCH SPI to FAST")
+      _spi = SPI(2, baudrate=20000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
+    else: # if speed == SLOW_SPI:
+      if _debugspi:
+        print("SWITCH SPI to SLOW")
       #_spi = SPI(2, baudrate=1000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
       _spi = SPI(2, baudrate=2000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
-    if speed == FAST_SPI:
-      #print("SWITCH SPI to FAST")
-      _spi = SPI(2, baudrate=20000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
     _speed = speed
   return _spi

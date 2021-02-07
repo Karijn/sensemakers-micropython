@@ -51,7 +51,6 @@ class INITBOARD:
   def inittouch(self):
     if self.yesno('calibrate touchpanel'):
       import calibrate
-      
       self.selecttouch = True
       self.calibration = calibrate.calibrate() 
       print(self.calibration)

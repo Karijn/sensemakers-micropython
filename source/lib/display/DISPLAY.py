@@ -11,7 +11,7 @@ _touch = None
 SLOW_SPI = const(1)
 FAST_SPI = const(2)
 
-def color(r, g, b):
+def color565(r, g, b):
   return color565(r, g, b)
 
 def setrotation(rotation):

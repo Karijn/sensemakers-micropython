@@ -41,19 +41,19 @@ def test(rot = 0):
     print(cnt, end='')
     print(' times at ', end='')
     print(pos)
-    getdisplay().fill_circle(pos[0], pos[1], 10, color(255, 0, 0))
+    getdisplay().fill_circle(pos[0], pos[1], 10, color565(255, 0, 0))
 
   def button_down(pos):
     print('button down at ', end='')
     print(pos)
-    getdisplay().fill_circle(pos[0], pos[1], 10, color(0, 255, 0))
+    getdisplay().fill_circle(pos[0], pos[1], 10, color565(0, 255, 0))
     
   def button_repeat(pos, cnt):
     print('button repeat ', end='')
     print(cnt, end='')
     print(' times at ', end='')
     print(pos)
-    getdisplay().fill_circle(pos[0], pos[1], 10, color(0, 0, 255))
+    getdisplay().fill_circle(pos[0], pos[1], 10, color565(0, 0, 255))
 
   setrotation(rot)
   getdisplay().erase()
@@ -62,4 +62,4 @@ def test(rot = 0):
   while True:
     c.update()
 
-test(0)
+test(7)

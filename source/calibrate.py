@@ -8,8 +8,8 @@ from time import sleep_ms
 import lib.fonts.opensans_16
 
 def draw_crosshair(tft, x, y):
-    tft.draw_hline(x - 10, y, 20, color(255, 0, 0))
-    tft.draw_vline(x, y - 10, 20, color(255, 0, 0))
+    tft.draw_hline(x - 10, y, 20, color565(255, 0, 0))
+    tft.draw_vline(x, y - 10, 20, color565(255, 0, 0))
 
 def calibrate():
 
@@ -74,6 +74,6 @@ def calibrate():
 #    while True:
 #        res = gettouch().get_touch()
 #        if res:
-#            getdisplay().fill_circle(res[0], res[1], 5, color(255,255, 0))
+#            getdisplay().fill_circle(res[0], res[1], 5, color565(255,255, 0))
     return calibration
 
