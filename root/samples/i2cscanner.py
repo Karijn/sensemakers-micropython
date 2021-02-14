@@ -74,7 +74,7 @@ def i2ctester(twodigit=True):
         addresses = i2c_scan_once(i2c, twodigit)
 
         if last_len < len(addresses):
-            display.erase()
+            display.clear()
 
         last_len = len(addresses)
         display.set_font(lib.fonts.roboto_cond_reg_18)

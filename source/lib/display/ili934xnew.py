@@ -301,10 +301,7 @@ class ILI9341:
     if rest != 0:
       mv = memoryview(self._buf)
       self.write_data(mv[:rest*2])
-
-  def erase(self):
-    self.fill_rect(0, 0, self.width, self.height)
-
+      
   def clear(self, color=0):
     """Clear display.
 
@@ -321,7 +318,7 @@ class ILI9341:
     for y in range(0, h, 8):
       self._writeblock(0, y, w - 1, y + 7, line)
 
-  def blit(self, bitbuff, x, y, w, h):
+  def blit_buf(self, bitbuff, x, y, w, h):
     x = min(self.width - 1, max(0, x))
     y = min(self.height - 1, max(0, y))
     w = min(self.width - x, max(1, w))
@@ -358,7 +355,7 @@ class ILI9341:
           buf[index+i] = glyph[nbytes*i+row]
       pos += char_w
     fb = framebuf.FrameBuffer(buf,str_w, self._font.height(), framebuf.MONO_VLSB)
-    self.blit(fb, x, y, str_w, self._font.height())
+    self.blit_buf(fb, x, y, str_w, self._font.height())
     return x+str_w
 
   def scroll(self, dy):

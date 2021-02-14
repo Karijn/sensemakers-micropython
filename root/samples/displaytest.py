@@ -18,7 +18,7 @@ colors = [color565(255,0,0), color565(0,255,0),color565(0,0,255),color565(150,15
 
 text = 'Now is the time for all Sensemakers to come to the aid of the party.'
 
-display.erase()
+display.clear()
 display.set_pos(0, 0)
 
 bg_led = PWM(Pin(4))

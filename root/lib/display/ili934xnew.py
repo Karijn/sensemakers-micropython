@@ -206,7 +206,7 @@ class ILI9341:
     self.rst(1)
     time.sleep_ms(50)
 
-  def  write_cmd(self, command, data=None):
+  def write_cmd(self, command, data=None):
     self.dc(0)
     self.cs(0)
     self.spi.write(bytearray([command]))
@@ -235,7 +235,6 @@ class ILI9341:
     self.spi.write(data)
     self.cs(1)
 
-  ## Done
   def _writeblock(self, x0, y0, x1, y1, data=None):
     self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
     self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
@@ -280,7 +279,6 @@ class ILI9341:
   #   else:
   #     self.fill_vrect(x, y, w, h, color)
 
-
   def fill_rect(self, x, y, w, h, color=None):
     x = min(self.width - 1, max(0, x))
     y = min(self.height - 1, max(0, y))
@@ -302,9 +300,6 @@ class ILI9341:
       mv = memoryview(self._buf)
       self.write_data(mv[:rest*2])
 
-  def erase(self):
-    self.fill_rect(0, 0, self.width, self.height)
-
   def clear(self, color=0):
     """Clear display.
 
@@ -321,7 +316,7 @@ class ILI9341:
     for y in range(0, h, 8):
       self._writeblock(0, y, w - 1, y + 7, line)
 
-  def blit(self, bitbuff, x, y, w, h):
+  def blit_buf(self, bitbuff, x, y, w, h):
     x = min(self.width - 1, max(0, x))
     y = min(self.height - 1, max(0, y))
     w = min(self.width - x, max(1, w))
@@ -358,7 +353,7 @@ class ILI9341:
           buf[index+i] = glyph[nbytes*i+row]
       pos += char_w
     fb = framebuf.FrameBuffer(buf,str_w, self._font.height(), framebuf.MONO_VLSB)
-    self.blit(fb, x, y, str_w, self._font.height())
+    self.blit_buf(fb, x, y, str_w, self._font.height())
     return x+str_w
 
   def scroll(self, dy):
@@ -398,7 +393,6 @@ class ILI9341:
     if written<len(text):
       curx = self.chars(text[written:], curx,cury)
     self._x = curx; self._y = cury
-
 
   def print(self, text): #does word wrap, leaves self._x unchanged
     cury = self._y; curx = self._x
@@ -1007,7 +1001,6 @@ class ILI9341:
     """
     self.write_cmd_args(self.VSCRSADD, y >> 8, y & 0xFF)
 
-
   def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
     """Draw a circle.
 
@@ -1052,7 +1045,6 @@ class ILI9341:
       # Bottom-Right
       self.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
       self.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
-
 
   def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
     """Draw a filled circle.

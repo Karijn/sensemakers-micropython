@@ -56,7 +56,7 @@ def test(rot = 0):
     getdisplay().fill_circle(pos[0], pos[1], 10, color565(0, 0, 255))
 
   setrotation(rot)
-  getdisplay().erase()
+  getdisplay().clear()
 
   c = CLICKS( button_down=button_down, button_up = button_up, button_repeat=button_repeat)
   while True:
