@@ -129,7 +129,7 @@ def draw_clock(x, y, r1, r2, color):
       r3 += 3
     if a % 45 == 0:
       r3 += 4
-    display.draw_line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
+    display.line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
 
 def draw_scale(x, y, r1, r2, color):
   for a in range(180 - 45, 360 + 46, 5):
@@ -140,7 +140,7 @@ def draw_scale(x, y, r1, r2, color):
       r3 += 3
     if a % 45 == 0:
       r3 += 4
-    display.draw_line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
+    display.line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
 
 
 def map(x, in_min, in_max, out_min, out_max):
@@ -223,7 +223,7 @@ while True:
 
     if updategraph:
       if len(tpoints) > 1:
-        display.fill_rectangle(0, 200, 240, 115, color565(0, 0, 0))
+        display.fill_rect(0, 200, 240, 115, color565(0, 0, 0))
         display.draw_lines(tpoints, color=color565(128, 128, 255))
         display.draw_lines(hpoints, color=color565(255, 128, 128))
 

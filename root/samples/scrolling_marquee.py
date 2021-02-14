@@ -11,8 +11,8 @@ def test():
     display.clear(0)
 
     # Draw non-moving circles
-    display.fill_rectangle(0, 0, 239, 99, color565(27, 72, 156))
-    display.fill_rectangle(0, 168, 239, 151, color565(220, 27, 72))
+    display.fill_rect(0, 0, 239, 99, color565(27, 72, 156))
+    display.fill_rect(0, 168, 239, 151, color565(220, 27, 72))
 
     # Load Marquee image
     display.draw_image('images/Rototron128x26.raw', 56, 120, 128, 26)

@@ -263,7 +263,7 @@ class ILI9341:
       return
     self._writeblock(x, y, x, y, ustruct.pack(">H", color))
 
-  # def fill_rectangle(self, x, y, w, h, color):
+  # def fill_rect(self, x, y, w, h, color):
   #   """Draw a filled rectangle.
 
   #   Args:
@@ -281,7 +281,7 @@ class ILI9341:
   #     self.fill_vrect(x, y, w, h, color)
 
 
-  def fill_rectangle(self, x, y, w, h, color=None):
+  def fill_rect(self, x, y, w, h, color=None):
     x = min(self.width - 1, max(0, x))
     y = min(self.height - 1, max(0, y))
     w = min(self.width - x, max(1, w))
@@ -303,7 +303,7 @@ class ILI9341:
       self.write_data(mv[:rest*2])
 
   def erase(self):
-    self.fill_rectangle(0, 0, self.width, self.height)
+    self.fill_rect(0, 0, self.width, self.height)
 
   def clear(self, color=0):
     """Clear display.
@@ -373,7 +373,7 @@ class ILI9341:
     if self.scrolling:
       self.scroll(char_h)
       res = (self.height - char_h + self._scroll)%self.height
-      self.fill_rectangle(0, res, self.width, self._font.height())
+      self.fill_rect(0, res, self.width, self._font.height())
     return res
 
   def write(self, text): #does character wrap, compatible with stream output
@@ -528,7 +528,7 @@ class ILI9341:
       self.pixel(x0 + x, y0 - y, color)
       self.pixel(x0 - x, y0 - y, color)
 
-  def draw_hline(self, x, y, w, color):
+  def hline(self, x, y, w, color):
     """Draw a horizontal line.
 
     Args:
@@ -538,13 +538,13 @@ class ILI9341:
       color (int): RGB565 color value.
     """
     if x < 0 or y < 0 or (x + w - 1) > self.width:
-      print("draw_hline({}, {}) params out of screen".format(x, y))
+      print("hline({}, {}) params out of screen".format(x, y))
       return
 
     line = color.to_bytes(2, 'big') * w
     self._writeblock(x, y, x + w - 1, y, line)
 
-  def draw_vline(self, x, y, h, color):
+  def vline(self, x, y, h, color):
     """Draw a vertical line.
 
     Args:
@@ -555,7 +555,7 @@ class ILI9341:
     """
     # Confirm coordinates in boundary
     if x < 0 or y < 0 or (y + h - 1) > self.height:
-      print("draw_vline({}, {}) params out of screen".format(x, y))
+      print("vline({}, {}) params out of screen".format(x, y))
       return
     line = color.to_bytes(2, 'big') * h
     self._writeblock(x, y, x, y + h - 1, line)
@@ -574,7 +574,7 @@ class ILI9341:
     dy = -r - r
     x = 0
     y = r
-    self.draw_vline(x0, y0 - r, 2 * r + 1, color)
+    self.vline(x0, y0 - r, 2 * r + 1, color)
     while x < y:
       if f >= 0:
         y -= 1
@@ -583,10 +583,10 @@ class ILI9341:
       x += 1
       dx += 2
       f += dx
-      self.draw_vline(x0 + x, y0 - y, 2 * y + 1, color)
-      self.draw_vline(x0 - x, y0 - y, 2 * y + 1, color)
-      self.draw_vline(x0 - y, y0 - x, 2 * x + 1, color)
-      self.draw_vline(x0 + y, y0 - x, 2 * x + 1, color)
+      self.vline(x0 + x, y0 - y, 2 * y + 1, color)
+      self.vline(x0 - x, y0 - y, 2 * y + 1, color)
+      self.vline(x0 - y, y0 - x, 2 * x + 1, color)
+      self.vline(x0 + y, y0 - x, 2 * x + 1, color)
 
   def fill_ellipse(self, x0, y0, a, b, color):
     """Draw a filled ellipse.
@@ -611,7 +611,7 @@ class ILI9341:
     px = 0
     py = twoa2 * y
     # Plot initial points
-    self.draw_line(x0, y0 - y, x0, y0 + y, color)
+    self.line(x0, y0 - y, x0, y0 + y, color)
     # Region 1
     p = round(b2 - (a2 * b) + (0.25 * a2))
     while px < py:
@@ -623,8 +623,8 @@ class ILI9341:
         y -= 1
         py -= twoa2
         p += b2 + px - py
-      self.draw_line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-      self.draw_line(x0 - x, y0 - y, x0 - x, y0 + y, color)
+      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
+      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
     # Region 2
     p = round(b2 * (x + 0.5) * (x + 0.5) +
           a2 * (y - 1) * (y - 1) - a2 * b2)
@@ -637,10 +637,10 @@ class ILI9341:
         x += 1
         px += twob2
         p += a2 - py + px
-      self.draw_line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-      self.draw_line(x0 - x, y0 - y, x0 - x, y0 + y, color)
+      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
+      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
 
-  def draw_line(self, x1, y1, x2, y2, color):
+  def line(self, x1, y1, x2, y2, color):
     """Draw a line using Bresenham's algorithm.
 
     Args:
@@ -652,13 +652,13 @@ class ILI9341:
     if y1 == y2:
       if x1 > x2:
         x1, x2 = x2, x1
-      self.draw_hline(x1, y1, x2 - x1 + 1, color)
+      self.hline(x1, y1, x2 - x1 + 1, color)
       return
     # Check for vertical line
     if x1 == x2:
       if y1 > y2:
         y1, y2 = y2, y1
-      self.draw_vline(x1, y1, y2 - y1 + 1, color)
+      self.vline(x1, y1, y2 - y1 + 1, color)
       return
     # Confirm coordinates in boundary
     if self.is_off_grid(min(x1, x2), min(y1, y2),
@@ -707,7 +707,7 @@ class ILI9341:
     # Iterate through coordinates
     for i in range(1, len(coords)):
       x2, y2 = coords[i]
-      self.draw_line(x1, y1, x2, y2, color)
+      self.line(x1, y1, x2, y2, color)
       x1, y1 = x2, y2
 
   def draw_polygon(self, sides, x0, y0, r, color, rotate=0):
@@ -734,7 +734,7 @@ class ILI9341:
     # Cast to python float first to fix rounding errors
     self.draw_lines(coords, color=color)
 
-  def draw_rectangle(self, x, y, w, h, color):
+  def rect(self, x, y, w, h, color):
     """Draw a rectangle.
 
     Args:
@@ -746,10 +746,10 @@ class ILI9341:
     """
     x2 = x + w - 1
     y2 = y + h - 1
-    self.draw_hline(x, y, w, color)
-    self.draw_hline(x, y2, w, color)
-    self.draw_vline(x, y, h, color)
-    self.draw_vline(x2, y, h, color)
+    self.hline(x, y, w, color)
+    self.hline(x, y2, w, color)
+    self.vline(x, y, h, color)
+    self.vline(x2, y, h, color)
 
   def is_off_grid(self, xmin, ymin, xmax, ymax):
     """Check if coordinates extend past display boundaries.
@@ -858,7 +858,7 @@ class ILI9341:
       x1, y1 = xprev, yprev
     # Fill polygon
     for y, x in xdict.items():
-      self.draw_hline(x[0], y, x[1] - x[0] + 2, color)
+      self.hline(x[0], y, x[1] - x[0] + 2, color)
 
   def fill_vrect(self, x, y, w, h, color):
     """Draw a filled rectangle (optimized for vertical drawing).
@@ -1023,10 +1023,10 @@ class ILI9341:
     x = 0
     y = r
 
-    self.draw_hline(x0 + r, y0    , 2 + w - 2 * r, color)
-    self.draw_hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
-    self.draw_vline(x0    , y0 + r, 2 + h - 2 * r, color)
-    self.draw_vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
+    self.hline(x0 + r, y0    , 2 + w - 2 * r, color)
+    self.hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
+    self.vline(x0    , y0 + r, 2 + h - 2 * r, color)
+    self.vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
 
     while x < y:
       if f >= 0:
@@ -1072,7 +1072,7 @@ class ILI9341:
     w2 = int(w - 2 * r)
     h2 = int(h - 2 * r)
 
-    self.fill_rectangle(x0 + r, y0, w2, h, color)
+    self.fill_rect(x0 + r, y0, w2, h, color)
     while x < y:
       if f >= 0:
         y -= 1
@@ -1083,10 +1083,10 @@ class ILI9341:
       f += dx
       
       # Left
-      self.draw_vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
-      self.draw_vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
+      self.vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
+      self.vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
 
       #right 1
-      self.draw_vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
+      self.vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
       #right 2
-      self.draw_vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)
+      self.vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)

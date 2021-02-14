@@ -62,7 +62,7 @@ def test():
         x = int(CENTER_X * sin(angle) + HALF_WIDTH)
         y = int(CENTER_Y * cos(angle) + HALF_HEIGHT)
         color = color565(*hsv_to_rgb(angle / PI2, 1, 1))
-        display.draw_line(x, y, CENTER_X, CENTER_Y, color)
+        display.line(x, y, CENTER_X, CENTER_Y, color)
         angle += ANGLE_STEP_SIZE
 
     sleep(5)

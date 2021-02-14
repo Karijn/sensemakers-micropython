@@ -10,7 +10,7 @@ from ili9341 import Display, color565
 from xglcd_font import XglcdFont
 from touch_keyboard import TouchKeyboard
 from time import sleep
-import DISPLAY
+
 
 class PwnLookup(object):
     """Checks if password is pwned."""

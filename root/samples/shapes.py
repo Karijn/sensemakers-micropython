@@ -14,19 +14,19 @@ def test():
 
   display.clear()
 
-  display.draw_hline(10, 319, 229, color565(255, 0, 255))
+  display.hline(10, 319, 229, color565(255, 0, 255))
   sleep(1)
 
-  display.draw_vline(10, 0, 319, color565(0, 255, 255))
+  display.vline(10, 0, 319, color565(0, 255, 255))
   sleep(1)
 
   display.fill_hrect(23, 50, 30, 75, color565(255, 255, 255))
   sleep(1)
 
-  display.draw_hline(0, 0, 222, color565(255, 0, 0))
+  display.hline(0, 0, 222, color565(255, 0, 0))
   sleep(1)
 
-  display.draw_line(127, 0, 64, 127, color565(255, 255, 0))
+  display.line(127, 0, 64, 127, color565(255, 255, 0))
   sleep(2)
 
   display.clear()
@@ -39,18 +39,18 @@ def test():
   display.fill_polygon(7, 120, 120, 100, color565(0, 255, 0))
   sleep(1)
 
-  display.fill_rectangle(0, 0, 15, 227, color565(255, 0, 0))
+  display.fill_rect(0, 0, 15, 227, color565(255, 0, 0))
   sleep(1)
 
   display.clear()
 
-  display.fill_rectangle(0, 0, 163, 163, color565(128, 128, 255))
+  display.fill_rect(0, 0, 163, 163, color565(128, 128, 255))
   sleep(1)
 
-  display.draw_rectangle(0, 64, 163, 163, color565(255, 0, 255))
+  display.rect(0, 64, 163, 163, color565(255, 0, 255))
   sleep(1)
 
-  display.fill_rectangle(64, 0, 163, 163, color565(128, 0, 255))
+  display.fill_rect(64, 0, 163, 163, color565(128, 0, 255))
   sleep(1)
 
   display.draw_polygon(3, 120, 286, 30, color565(0, 64, 255), rotate=15)

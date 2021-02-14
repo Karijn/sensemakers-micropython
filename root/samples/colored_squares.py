@@ -45,7 +45,7 @@ def test():
   c = 0
   for x in range(0, 240, 48):
     for y in range(0, 320, 64):
-      display.fill_rectangle(x, y, 47, 63, colors[c])
+      display.fill_rect(x, y, 47, 63, colors[c])
       c += 1
   sleep(9)
   display.clear(0)

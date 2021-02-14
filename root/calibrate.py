@@ -8,8 +8,8 @@ from time import sleep_ms
 import lib.fonts.opensans_16
 
 def draw_crosshair(tft, x, y):
-    tft.draw_hline(x - 10, y, 20, color565(255, 0, 0))
-    tft.draw_vline(x, y - 10, 20, color565(255, 0, 0))
+    tft.hline(x - 10, y, 20, color565(255, 0, 0))
+    tft.vline(x, y - 10, 20, color565(255, 0, 0))
 
 def calibrate():
     setrotation(0)
