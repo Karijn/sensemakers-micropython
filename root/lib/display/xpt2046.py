@@ -60,17 +60,16 @@ class TOUCH:
   DEFAULT_CAL = (-331,  0.06685,-366,   0.06873,-432,  0.09323,  -437,  0.09545)
 
   def __init__(self, controller="XPT2046", asyn=False, *, confidence=5, margin=50, delay=10, spi=None, rotation=None):
-    print('int new TOUCH, rotation=', rotation)
-
-    # if spi is None:
-    #   self.spi = getspi(SLOW_SPI)
-    # else:
-    #   self.spi = spi
+    print('in new TOUCH, rotation=', rotation)
     self.spi = spi
+    print('before cs = Pin')
     self.cs = Pin(17, Pin.OUT)
+    print('before cs.value()')
     self.cs.value(1)
+    print('before allocate buffers')
     self.recv = bytearray(3)
     self.xmit = bytearray(3)
+    print('buffers allocated')
     # set default values
     self.ready = False
     self.touched = False
@@ -80,7 +79,10 @@ class TOUCH:
     self.rotation = 1
     cal = touch_calibrate# if calibration is None else calibration
     self.asynchronous = False
+
+    print('before touch_parameter')
     self.touch_parameter(confidence, margin, delay, cal)
+    print('after touch_parameter')
     if rotation != None:
       self.rotation=rotation
 
