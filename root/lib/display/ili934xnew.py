@@ -241,6 +241,13 @@ class ILI9341Base:
     time.sleep_ms(50)
 
 
+class ILI9341(ILI9341Base):
+
+  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
+
+    #self.displayext = DisplayExt()
+  
 ########################################################################################################
 ################################### FrameBuffer compatible functions ###################################
 ########################################################################################################
@@ -1111,11 +1118,3 @@ class ILI9341Base:
                x2, chunk_y + remainder - 1,
                buf)
 
-
-class ILI9341(ILI9341Base):
-
-  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
-    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
-
-    #self.displayext = DisplayExt()
-  

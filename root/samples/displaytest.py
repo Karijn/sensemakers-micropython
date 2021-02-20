@@ -11,7 +11,7 @@ from time import sleep_ms
 
 # Adapted for Sensemakers. Changed pins for the TTGO T$-V1.3 board
 
-display = getdisplay()
+display = getdisplay(2)
 
 fonts = [lib.fonts.glcdfont, lib.fonts.tt14, lib.fonts.tt24, lib.fonts.tt32]
 colors = [color565(255,0,0), color565(0,255,0),color565(0,0,255),color565(150,150,0)]

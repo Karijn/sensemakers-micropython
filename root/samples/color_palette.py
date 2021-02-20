@@ -43,7 +43,7 @@ def hsv_to_rgb(h, s, v):
 
 def test():
   """Test code."""
-  display = getdisplay()
+  display = getdisplay(0)
   display.clear(0)
 
   c = 0
