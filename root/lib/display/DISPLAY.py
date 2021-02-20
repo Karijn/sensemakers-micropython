@@ -14,7 +14,7 @@ FAST_SPI = const(2)
 _debugspi = False
 
 def color565(r, g, b):
-  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
 
 def setdebugspi(enable):
   global _debugspi

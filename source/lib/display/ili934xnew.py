@@ -39,7 +39,7 @@ _NGAMCTRL = const(0xe1) # Negative Gamma Control
 _CHUNK = const(1024) #maximum number of pixels per spi write
 
 def color565(r, g, b):
-  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
 
 class ILI9341:
 

@@ -59,11 +59,14 @@ class TOUCH:
   #  DEFAULT_CAL = (-3917, -0.127, -3923, -0.1267, -3799, -0.07572, -3738,  -0.07814)
   DEFAULT_CAL = (-331,  0.06685,-366,   0.06873,-432,  0.09323,  -437,  0.09545)
 
+#  TOUCH_CS_PIN = const(17)
+  TOUCH_CS_PIN = const(27)
+  
   def __init__(self, controller="XPT2046", asyn=False, *, confidence=5, margin=50, delay=10, spi=None, rotation=None):
     print('in new TOUCH, rotation=', rotation)
     self.spi = spi
     print('before cs = Pin')
-    self.cs = Pin(17, Pin.OUT)
+    self.cs = Pin(TOUCH.TOUCH_CS_PIN, Pin.OUT)
     print('before cs.value()')
     self.cs.value(1)
     print('before allocate buffers')

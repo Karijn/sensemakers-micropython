@@ -1,9 +1,14 @@
 from lib.display.DISPLAY import *
+from lib.display.displayext import DisplayExt
 from math import sin, cos, radians
-import lib.fonts.roboto_cond_reg_16
-import utime
+import utime as time
 from machine import Pin, I2C
+import framebuf
+
+#import lib.fonts.roboto_cond_reg_16
 from lib.sensors import sht30
+
+from lib.display.colors import *
 
 
 class Avg:
@@ -28,34 +33,23 @@ class Avg:
   def All(self):
     return self._avgArray
     
-i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
 
-sht = sht30.SHT30(i2c, i2c_address=0x45)
-sht.is_present()
-sht.status()
-sht.measure()
-sht.measure_int()
 
-font = lib.fonts.roboto_cond_reg_16
-
-setrotation(0)
-display=getdisplay()
-display.clear(0)
-display.set_font(font)
+#seed(ticks_cpu())
 
 cc_x = 120  # center click
 cc_y = 110
 sec_l = 50  # length sec
-min_l = 40  # length min
+min_l = 45  # length min
 min_w = 2   # width min
-min_wd = 10 # width offset min
-hr_l = 30   # length hour
+min_wd = 15 # width offset min
+hr_l = 40   # length hour
 hr_w = 5    # width hour
-hr_wd = 5   # width offset hour
+hr_wd = 10   # width offset hour
 
-def_secs_lines = [[cc_x, cc_y], [cc_x,         cc_y + sec_l]]
-def_mins_lines = [[cc_x, cc_y], [cc_x + min_w, cc_y + min_wd], [cc_x, cc_y + min_l], [cc_x - min_w, cc_y + min_wd], [cc_x, cc_y]] 
-def_hour_lines = [[cc_x, cc_y], [cc_x + hr_w,  cc_y + hr_wd],  [cc_x, cc_y + hr_l],  [cc_x - hr_w,  cc_y + hr_wd],  [cc_x, cc_y]] 
+def_secs_lines = [[cc_x, cc_y + 5], [cc_x,         cc_y + sec_l]]
+def_mins_lines = [[cc_x, cc_y + 5], [cc_x + min_w, cc_y + min_wd], [cc_x, cc_y + min_l], [cc_x - min_w, cc_y + min_wd], [cc_x, cc_y + 5]] 
+def_hour_lines = [[cc_x, cc_y + 5], [cc_x + hr_w,  cc_y + hr_wd],  [cc_x, cc_y + hr_l],  [cc_x - hr_w,  cc_y + hr_wd],  [cc_x, cc_y + 5]] 
 
 r1 = 60
 r2 = 70
@@ -64,15 +58,6 @@ currenttime=(0, 0, 0, 0, 0, -1, 0)
 secs_lines = [[cc_x, cc_y], [cc_x, cc_y]]
 mins_lines = [[cc_x, cc_y], [cc_x, cc_y]]
 hour_lines = [[cc_x, cc_y], [cc_x, cc_y]]
-
-temps = Avg(60)
-hums = Avg(60)
-tempAvg = Avg(60)
-humAvg = Avg(60)
-
-
-#display.draw_rrectangle()
-#display.fill_rrectangle()
 
 def rotate_point(point, angle, center_point=(0, 0)):
   """Rotates a point around center_point(origin by default)
@@ -100,27 +85,11 @@ def rotate_polygon(polygon, angle, center_point=(0, 0)):
     rotated_polygon.append(rotated_corner)
   return rotated_polygon
 
-def daylight(now,offset):
-  rt = time.localtime(now)
-  nows = now + (11 - rt[1]) * 2592000 # about mid November
-  # work back to find Sunday Oct
-  while time.localtime(nows)[1] != 10: #Oct
-    nows -= 86400
-  while time.localtime(nows)[6] != 6: #Sun
-    nows -= 86400
-  nowsOct = nows
-  # work back to find Sunday Mar
-  while time.localtime(nows)[1] != 3: #Mar
-    nows -= 86400
-  while time.localtime(nows)[6] != 6: #Sun
-    nows -= 86400
-  nowsMar = nows
-  # saving is used between dates
-  if (now > nowsMar) and (now < nowsOct):
-    now += (3600 * offset)
-  return now
+def draw_clock(surface, x, y, r1, r2, color):
+  surface.draw_circle(cc_x, cc_y, 3, color)
+  surface.draw_circle(cc_x, cc_y, r1 - 1, color)
+  surface.draw_circle(cc_x, cc_y, r2 + 8, color)
 
-def draw_clock(x, y, r1, r2, color):
   for a in range(0, 360 , 6):
     xa = cos(radians(a))
     ya = sin(radians(a))
@@ -129,19 +98,7 @@ def draw_clock(x, y, r1, r2, color):
       r3 += 3
     if a % 45 == 0:
       r3 += 4
-    display.line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
-
-def draw_scale(x, y, r1, r2, color):
-  for a in range(180 - 45, 360 + 46, 5):
-    xa = cos(radians(a))
-    ya = sin(radians(a))
-    r3 = r2
-    if a % 15 == 0:
-      r3 += 3
-    if a % 45 == 0:
-      r3 += 4
-    display.line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
-
+    surface.line( x + int(xa * r1), y + int(ya * r1), x + int(xa * r3), y + int(ya * r3), color)
 
 def map(x, in_min, in_max, out_min, out_max):
   div = (in_max - in_min) 
@@ -160,37 +117,55 @@ def make_point_array(values, minval, maxval, top, bottom):
     index += 2
   return pointsval
 
+def test():
+  display = getdisplay(2)
 
-display.clear(0)
+  i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
+  sht = sht30.SHT30(i2c, i2c_address=0x45)
+  # sht.is_present()
+  # sht.status()
+  # sht.measure()
+  sht.measure_int()
 
-draw_clock(cc_x, cc_y, r1, r2, color565(255, 255, 0))
+  buf = bytearray(display.width * display.height * 2)
+  fbuf = DisplayExt(framebuf.FrameBuffer(buf, display.width, display.height, framebuf.RGB565), framebuf.RGB565)
 
-# 1st time init
-temp, hum = sht.measure()
-tempAvg.Add(int(temp * 100))
-humAvg.Add(int(hum * 100))
-temps.Add(int(tempAvg.Get()))
-hums.Add(int(humAvg.Get()))
+  currenttime = [0, 0, 0, 0, 0, 0]
+  # 1st time init
+  temps = Avg(60)
+  hums = Avg(60)
+  tempAvg = Avg(60)
+  humAvg = Avg(60)
 
-is_first_time = True
+  temp, hum = sht.measure()
+  tempAvg.Add(int(temp * 100))
+  humAvg.Add(int(hum * 100))
+  temps.Add(int(tempAvg.Get()))
+  hums.Add(int(humAvg.Get()))
 
-while True:
-  updategraph=is_first_time
-  is_first_time = False
-  t = utime.localtime()
+  is_first_time = True
 
-  if t[5] != currenttime[5]:
-    text = '  {}/{}/{} {}:{}:{}  '.format(t[0], t[1], t[2], t[3], t[4], t[5])
-    w = font.get_width(text)
-    display.set_pos(cc_x - int(w/2), 20)
-    display.print(text)
+  while True:
+    t = time.localtime(time.time())
+    if t[5] != currenttime[5]:
 
-    temp, hum = sht.measure()
-    tempAvg.Add(int(temp * 100))
-    humAvg.Add(int(hum * 100))
+      fbuf.fill(color565(0, 0, 0))
+      fbuf.text('{:02d}-{:02d}-{:04d}  {:02d}:{:02d}:{:02d}'.format(t[2], t[1], t[0], t[3], t[4], t[5]), 32, 5, LemonChiffon)
+      draw_clock(fbuf, cc_x, cc_y, 60, 80, color565(255, 255, 255))
 
-    if t[4] != currenttime[4]:
-      display.draw_lines(mins_lines, color=color565(0, 0, 0))
+      currenttime = t
+
+      nsecs_lines = rotate_polygon(def_secs_lines, 180 + t[5] * 6, center_point=(cc_x, cc_y))
+      nmins_lines = rotate_polygon(def_mins_lines, 180 + t[4] * 6, center_point=(cc_x, cc_y))
+      nhour_lines = rotate_polygon(def_hour_lines, 180 + t[3] * 30, center_point=(cc_x, cc_y))
+
+      fbuf.draw_lines(nsecs_lines, color565(0, 255, 0))
+      fbuf.draw_lines(nmins_lines, color565(0, 255, 0))
+      fbuf.draw_lines(nhour_lines, color565(0, 255, 0))
+
+      temp, hum = sht.measure()
+      tempAvg.Add(int(temp * 100))
+      humAvg.Add(int(hum * 100))
 
       temps.Add(int(tempAvg.Get()))
       hums.Add(int(humAvg.Get()))
@@ -199,43 +174,20 @@ while True:
       maxtemp = max(temps.All())
       minhum = min(hums.All())
       maxhum = max(hums.All())
-      tpoints = make_point_array(temps.All(), mintemp, maxtemp, 250, 210)
-      hpoints = make_point_array(hums.All(), minhum, maxhum, 300, 260)
-      updategraph = True
+      tpoints = make_point_array(temps.All(), mintemp, maxtemp, 255, 215)
+      hpoints = make_point_array(hums.All(), minhum, maxhum, 305, 265)
 
-    nsecs_lines = rotate_polygon(def_secs_lines, 180 + t[5] * 6, center_point=(cc_x, cc_y))
-    nmins_lines = rotate_polygon(def_mins_lines, 180 + t[4] * 6, center_point=(cc_x, cc_y))
-    nhour_lines = rotate_polygon(def_hour_lines, 180 + t[3] * 30, center_point=(cc_x, cc_y))
-
-    if t[3] != currenttime[3]:
-      display.draw_lines(hour_lines, color=color565(0, 0, 0))
-    if t[4] != currenttime[4]:
-      display.draw_lines(mins_lines, color=color565(0, 0, 0))
-    display.draw_lines(secs_lines, color=color565(0, 0, 0))
-
-    display.draw_lines(nhour_lines, color=color565(255, 0, 0))
-    display.draw_lines(nmins_lines, color=color565(0, 255, 0))
-    display.draw_lines(nsecs_lines, color=color565(0, 0, 255))
-
-    hour_lines = nhour_lines
-    mins_lines = nmins_lines
-    secs_lines = nsecs_lines
-
-    if updategraph:
       if len(tpoints) > 1:
-        display.fill_rect(0, 200, 240, 115, color565(0, 0, 0))
-        display.draw_lines(tpoints, color=color565(128, 128, 255))
-        display.draw_lines(hpoints, color=color565(255, 128, 128))
+        #fbuf.fill_rect(0, 200, 240, 115, color565(0, 0, 0))
+        fbuf.draw_lines(tpoints, color=color565(63, 63, 255))
+        fbuf.draw_lines(hpoints, color=color565(255, 63, 63))
 
-        display.set_color(color565(128, 128, 255), color565(0, 0, 0))
-        display.set_pos(2, 235)
-        display.print("T: " + str(mintemp/100)) 
-        display.set_pos(2, 200)
-        display.print("T: " + str(maxtemp/100)) 
+        fbuf.text('T:{}'.format(str(mintemp/100)), 2, 255, color565(63, 63, 255))
+        fbuf.text('T:{}'.format(str(maxtemp/100)), 2, 215, color565(63, 63, 255))
 
-        display.set_color(color565(255, 128, 128), color565(0, 0, 0))
-        display.set_pos(2, 295)
-        display.print("H: " + str(minhum/100)) 
-        display.set_pos(2, 260)
-        display.print("H: " + str(maxhum/100)) 
-    currenttime = t
+        fbuf.text('H:{}'.format(str(minhum/100)), 2, 305, color565(255, 63, 63))
+        fbuf.text('H:{}'.format(str(maxhum/100)), 2, 265, color565(255, 63, 63))
+
+      display.draw_sprite(buf, 0, 0, display.width, display.height)
+
+test()

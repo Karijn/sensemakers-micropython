@@ -19,6 +19,7 @@ import fonts.glcdfont
 import framebuf
 from micropython import const
 from math import cos, sin, pi, radians
+import lib.fonts.glcdfont
 
 _RDDSDR = const(0x0f) # Read Display Self-Diagnostic Result
 
@@ -39,9 +40,10 @@ _NGAMCTRL = const(0xe1) # Negative Gamma Control
 _CHUNK = const(1024) #maximum number of pixels per spi write
 
 def color565(r, g, b):
-  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | b >> 3
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
 
-class ILI9341:
+  
+class ILI9341Base:
 
   # Command constants from ILI9341 datasheet
   NOP = const(0x00)  # No-op
@@ -114,7 +116,7 @@ class ILI9341:
     self._colormap = bytearray(b'\x00\x00\xFF\xFF') #default white foregraound, black background
     self._x = 0
     self._y = 0
-    self._font = fonts.glcdfont
+    self._font = lib.fonts.glcdfont
     self.scrolling = False
 
   def init(self):
@@ -237,7 +239,6 @@ class ILI9341:
     time.sleep_ms(50)
     self.rst(1)
     time.sleep_ms(50)
-
 
 
 ########################################################################################################
@@ -397,9 +398,12 @@ class ILI9341:
 
   def blit(self, fbuf, x, y, key=None):
     """
-    Draw another FrameBuffer on top of the current one at the given coordinates. If key is specified then it should be a color integer and the corresponding color will be considered transparent: all pixels with that color value will not be drawn.
+    Draw another FrameBuffer on top of the current one at the given coordinates. 
+    If key is specified then it should be a color integer and the corresponding color 
+    will be considered transparent: all pixels with that color value will not be drawn.
 
-    This method works between FrameBuffer instances utilising different formats, but the resulting colors may be unexpected due to the mismatch in color formats.
+    This method works between FrameBuffer instances utilising different formats, 
+    but the resulting colors may be unexpected due to the mismatch in color formats.
     """
     pass
 
@@ -418,7 +422,7 @@ class ILI9341:
   def reset_scroll(self):
     self.scrolling = False
     self._scroll = 0
-    self.scroll(0)
+    self.scroll_y(0)
 
   def set_font(self, font):
     ret = self._font
@@ -481,7 +485,7 @@ class ILI9341:
     self.blit_buf(fb, x, y, str_w, self._font.height())
     return x+str_w
 
-  def scroll(self, dy):
+  def scroll_y(self, dy):
     self._scroll = (self._scroll + dy) % self.height
     self .write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
 
@@ -491,7 +495,7 @@ class ILI9341:
       res = cury + char_h
       self.scrolling = (res >= self.height)
     if self.scrolling:
-      self.scroll(char_h)
+      self.scroll_y(char_h)
       res = (self.height - char_h + self._scroll)%self.height
       self.fill_rect(0, res, self.width, self._font.height())
     return res
@@ -1108,25 +1112,10 @@ class ILI9341:
                buf)
 
 
+class ILI9341(ILI9341Base):
 
+  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
 
-
-
-######################
-
-  # def fill_rect(self, x, y, w, h, color):
-  #   """Draw a filled rectangle.
-
-  #   Args:
-  #     x (int): Starting X position.
-  #     y (int): Starting Y position.
-  #     w (int): Width of rectangle.
-  #     h (int): Height of rectangle.
-  #     color (int): RGB565 color value.
-  #   """
-  #   if self.is_off_grid(x, y, x + w - 1, y + h - 1):
-  #     return
-  #   if w > h:
-  #     self.fill_hrect(x, y, w, h, color)
-  #   else:
-  #     self.fill_vrect(x, y, w, h, color)
+    #self.displayext = DisplayExt()
+  
