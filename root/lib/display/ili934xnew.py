@@ -20,6 +20,8 @@ import framebuf
 from micropython import const
 from math import cos, sin, pi, radians
 import lib.fonts.glcdfont
+from lib.display.displayext import DisplayExt
+
 
 _RDDSDR = const(0x0f) # Read Display Self-Diagnostic Result
 
@@ -240,13 +242,28 @@ class ILI9341Base:
     self.rst(1)
     time.sleep_ms(50)
 
+  def draw_sprite(self, buf, x, y, w, h):
+    """Draw a sprite (optimized for horizontal drawing).
+
+    Args:
+      buf (bytearray): Buffer to draw.
+      x (int): Starting X position.
+      y (int): Starting Y position.
+      w (int): Width of drawing.
+      h (int): Height of drawing.
+    """
+    x2 = x + w - 1
+    y2 = y + h - 1
+    if self.is_off_grid(x, y, x2, y2):
+      return
+    self._writeblock(x, y, x2, y2, buf)
+
 
 class ILI9341(ILI9341Base):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
     super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
 
-    #self.displayext = DisplayExt()
   
 ########################################################################################################
 ################################### FrameBuffer compatible functions ###################################
@@ -615,9 +632,6 @@ class ILI9341(ILI9341Base):
       y (int): Number of pixels to scroll display.
     """
     self.write_cmd_args(self.VSCRSADD, y >> 8, y & 0xFF)
-
-
-##################
 
   def fill_vrect(self, x, y, w, h, color):
     """Draw a filled rectangle (optimized for vertical drawing).
@@ -1118,3 +1132,44 @@ class ILI9341(ILI9341Base):
                x2, chunk_y + remainder - 1,
                buf)
 
+
+class ILI9341Buffered(ILI9341Base):
+  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
+    self.displayext = DisplayExt( None, width, height, framebuf.RGB565)
+    self.fill            = self.displayext.fill
+    self.pixel           = self.displayext.pixel
+    self.hline           = self.displayext.hline
+    self.vline           = self.displayext.vline
+    self.line            = self.displayext.line
+    self.rect            = self.displayext.rect
+    self.fill_rect       = self.displayext.fill_rect
+    self.text            = self.displayext.text
+    self.scroll          = self.displayext.scroll
+    self.blit            = self.displayext.blit
+    self.draw_lines      = self.displayext.draw_lines
+    self.draw_circle     = self.displayext.draw_circle
+    self.fill_circle     = self.displayext.fill_circle
+    self.fill_ellipse    = self.displayext.fill_ellipse
+    self.draw_ellipse    = self.displayext.draw_ellipse
+    self.draw_rrectangle = self.displayext.draw_rrectangle
+    self.fill_rrectangle = self.displayext.fill_rrectangle
+    self.fill_polygon    = self.displayext.fill_polygon
+    self.draw_polygon    = self.displayext.draw_polygon
+    self.load_sprite     = self.displayext.load_sprite
+    self.draw_sprite     = self.displayext.draw_sprite
+    self.set_color       = self.displayext.set_color
+    self.set_pos         = self.displayext.set_pos
+    self.reset_scroll    = self.displayext.reset_scroll
+    self.set_font        = self.displayext.set_font
+    self.chars           = self.displayext.chars
+    self.next_line       = self.displayext.next_line
+    self.write           = self.displayext.write
+    self.print           = self.displayext.print
+    self.get_stringsize  = self.displayext.get_stringsize
+    self.print_centered  = self.displayext.print_centered
+    self.get_screensize  = self.displayext.get_screensize
+    self.is_off_grid     = self.displayext.is_off_grid
+
+  def show(self):
+    super().draw_sprite(self.displayext.buf, 0, 0, self.displayext.width, self.displayext.height)

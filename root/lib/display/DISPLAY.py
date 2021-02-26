@@ -1,6 +1,6 @@
 from machine import Pin, SPI
-from lib.display.xpt2046 import TOUCH
-from lib.display.ili934xnew import ILI9341
+#from lib.display.xpt2046 import TOUCH
+#from lib.display.ili934xnew import ILI9341, ILI9341Buffered
 
 _oldrotation = -1
 _rotation = 0
@@ -35,6 +35,7 @@ def gettouch():
     _spi = getspi(SLOW_SPI)
   if _touch is None:
     print('get new TOUCH, rotation = ', _rotation)
+    from lib.display.xpt2046 import TOUCH
     _touch = TOUCH(spi=_spi, rotation=_rotation)
   else:
     _touch.spi = _spi
@@ -50,6 +51,8 @@ def getdisplay(rotation=None):
   if _spi is None or _speed != FAST_SPI:
     _spi = getspi(FAST_SPI)
 
+  from lib.display.ili934xnew import ILI9341, ILI9341Buffered
+
   if rotation != None:
     _rotation=rotation
 
@@ -61,6 +64,31 @@ def getdisplay(rotation=None):
     if _rotation != _oldrotation:
       print('get new display, rotation = ', _rotation)
       _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+  _oldrotation = _rotation
+  return _display
+
+def getbuffereddisplay(rotation=None):
+  global _spi
+  global _display
+  global _speed   
+  global _rotation
+  global _oldrotation
+  if _spi is None or _speed != FAST_SPI:
+    _spi = getspi(FAST_SPI)
+
+  from lib.display.ili934xnew import ILI9341, ILI9341Buffered
+
+  if rotation != None:
+    _rotation=rotation
+
+  if _display is None:
+    print('get new display, rotation = ', _rotation)
+    _display = ILI9341Buffered(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+  else:
+    _display.spi = _spi
+    if _rotation != _oldrotation:
+      print('get new display, rotation = ', _rotation)
+      _display = ILI9341Buffered(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
   _oldrotation = _rotation
   return _display
 

@@ -1,5 +1,4 @@
 import framebuf
-from lib.display.ili934xnew import color565
 from math import cos, sin, pi, radians
 import lib.fonts.glcdfont
 
@@ -9,18 +8,18 @@ class FFrameBuffer(framebuf.FrameBuffer):
     self.height = height
     self._colorscheme = colorscheme
     if buf is None:
-      buf = bytearray(width * heigth * 2)
-    super(FFrameBuffer, self).__init__(buf, w, h, colorscheme)
+      buf = bytearray(width * height * 2)
+    super().__init__(buf, width, height, colorscheme)
     self.buf = buf
      
 class DisplayExt():
   
   def __init__(self, base = None, width = 240, height = 320, colorscheme = framebuf.RGB565):
-    self._width = width
-    self._height = height
+    self.width = width
+    self.height = height
     if base is None:
-      buf = bytearray(width * height * 2)
-      base = FFrameBuffer(buf, width, height, colorscheme)
+      self.buf = bytearray(width * height * 2)
+      base = FFrameBuffer(self.buf, width, height, colorscheme)
     self.base = base
     self.colorscheme = colorscheme
     self._scroll = 0
@@ -30,57 +29,16 @@ class DisplayExt():
     self._y = 0
     self._font = lib.fonts.glcdfont
     self.scrolling = False
-
-  def fill(self, c):
-    """Fill the entire FrameBuffer with the specified color."""
-    return self.base.fill(c)
-
-  def pixel(self, x, y, c = None):
-    """If c is not given, get the color value of the specified pixel. 
-    If c is given, set the specified pixel to the given color."""
-    return self.base.pixel(x, y, c)
-
-  def hline(self, x, y, w, c):
-    return self.base.hline(x, y, w, c)
-
-  def vline(self, x, y, h, c):
-    return self.base.vline(x, y, h, c)
-
-  def line(self, x1, y1, x2, y2, c):
-    """Draw a line from a set of coordinates using the given color and a thickness of 1 pixel.
-    The line method draws the line up to a second set of coordinates whereas 
-    the hline and vline methods draw horizontal and vertical lines respectively up to a given length."""
-    return self.base.line(x1, y1, x2, y2, c)
-
-  def rect(self, x, y, w, h, c):
-    """fill_rect(x, y, w, h, c)
-    Draw a rectangle at the given location, size and color. 
-    The rect method draws only a 1 pixel outline whereas the fill_rect method draws both the outline and interior."""
-    return self.base.rect(x, y, w, h, c)
-
-  def fill_rect(self, x, y, w, h, c):
-    return self.base.fill_rect(x, y, w, h, c)
-
-  def text(self, s, x, y, c = None):
-    return self.base.text(s, x, y, c)
-
-  def scroll(self, xstep, ystep):
-    """Shift the contents of the FrameBuffer by the given vector. 
-    This may leave a footprint of the previous colors in the FrameBuffer."""
-    return self.base.scroll(xstep, ystep)
-
-  def blit(self, fbuf, x, y, key = None):
-    """Draw another FrameBuffer on top of the current one at the given coordinates. 
-    If key is specified then it should be a color integer and the corresponding color will be considered transparent: 
-    all pixels with that color value will not be drawn.
-
-    This method works between FrameBuffer instances utilising different formats, 
-    but the resulting colors may be unexpected due to the mismatch in color formats."""
-
-    self.base.blit(fbuf, x, y, key)
-
-
-###########################################
+    self.fill = self.base.fill
+    self.pixel = self.base.pixel
+    self.line = self.base.line
+    self.hline = self.base.hline
+    self.vline = self.base.vline
+    self.rect = self.base.rect
+    self.fill_rect = self.base.fill_rect
+    self.text = self.base.text
+    self.scroll = self.base.scroll
+    self.blit = self.base.blit
 
   def draw_lines(self, coords, color):
     """Draw multiple lines.
@@ -271,7 +229,7 @@ class DisplayExt():
       self.base.pixel(x0 + x, y0 - y, color)
       self.base.pixel(x0 - x, y0 - y, color)
 
-  def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
+  def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=0xffff):
     """Draw a circle.
 
     Args:
@@ -316,7 +274,7 @@ class DisplayExt():
       self.base.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
       self.base.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
 
-  def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
+  def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=0xffff):
     """Draw a filled circle.
 
     Args:
@@ -486,41 +444,6 @@ class DisplayExt():
     s = framebuf.FrameBuffer(buf, w, h, self.colorscheme)
     self.blit(s, x, y, 0)
 
-  # def draw_image(self, path, x=0, y=0, w=320, h=240):
-  #   """Draw image from flash.
-
-  #   Args:
-  #     path (string): Image file path.
-  #     x (int): X coordinate of image left.  Default is 0.
-  #     y (int): Y coordinate of image top.  Default is 0.
-  #     w (int): Width of image.  Default is 320.
-  #     h (int): Height of image.  Default is 240.
-  #   """
-  #   x2 = x + w - 1
-  #   y2 = y + h - 1
-  #   if self.base.is_off_grid(x, y, x2, y2):
-  #     return
-  #   with open(path, "rb") as f:
-  #     chunk_height = 1024 // w
-  #     chunk_count, remainder = divmod(h, chunk_height)
-  #     chunk_size = chunk_height * w * 2
-  #     chunk_y = y
-  #     if chunk_count:
-  #       for c in range(0, chunk_count):
-  #         buf = f.read(chunk_size)
-  #         self.base._writeblock(x, chunk_y,
-  #                x2, chunk_y + chunk_height - 1,
-  #                buf)
-  #         chunk_y += chunk_height
-  #     if remainder:
-  #       buf = f.read(remainder * w * 2)
-  #       self._writeblock(x, chunk_y,
-  #              x2, chunk_y + remainder - 1,
-  #              buf)
-
-
-###############################################
-###############################################
   def set_color(self,fg,bg):
     self.bcolor = bg
     self.fcolor = fg
@@ -567,19 +490,15 @@ class DisplayExt():
     #print('pos = ({}, {})'.format(mx, my))
     return x + str_w
 
-  # def scroll_y(self, dy):
-  #   self._scroll = (self._scroll + dy) % self._height
-  #   self.write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
-
   def next_line(self, cury, char_h):
     # global scrolling
     # if not self.scrolling:
     res = cury + char_h
-    #   self.scrolling = (res >= self._height)
+    #   self.scrolling = (res >= self.height)
     # if self.scrolling:
     #   self.scroll_y(char_h)
-    #   res = (self._height - char_h + self._scroll) % self._height
-    #   self.base.fill_rect(0, res, self._width, self._font.height())
+    #   res = (self.height - char_h + self._scroll) % self.height
+    #   self.base.fill_rect(0, res, self.width, self._font.height())
     return res
 
   def write(self, text): #does character wrap, compatible with stream output
@@ -595,7 +514,7 @@ class DisplayExt():
         cury = self.next_line(cury,char_h)
       else:
         char_w = self._font.get_width(ch)
-        if curx + width + char_w >= self._width:
+        if curx + width + char_w >= self.width:
           self.chars(text[written:pos], curx,cury)
           curx = 0 ; written = pos; width = char_h
           cury = self.next_line(cury,char_h)
@@ -614,12 +533,12 @@ class DisplayExt():
     for line in lines:
       words = line.split(' ')
       for word in words:
-        if curx + self._font.get_width(word) >= self._width:
+        if curx + self._font.get_width(word) >= self.width:
           curx = self._x
           cury = self.next_line(cury,char_h)
-          while self._font.get_width(word) > self._width:
-            self.chars(word[:self._width//char_w],curx,cury)
-            word = word[self._width//char_w:]
+          while self._font.get_width(word) > self.width:
+            self.chars(word[:self.width//char_w],curx,cury)
+            word = word[self.width//char_w:]
             cury = self.next_line(cury,char_h)
         if len(word)>0:
           curx = self.chars(word + ' ', curx, cury)
@@ -640,7 +559,7 @@ class DisplayExt():
       self.print(s)
 
   def get_screensize(self):
-    return self._width, self._height 
+    return self.width, self.height 
 
   def is_off_grid(self, xmin, ymin, xmax, ymax):
     """Check if coordinates extend past display boundaries.
@@ -659,13 +578,49 @@ class DisplayExt():
     if ymin < 0:
       print('y-coordinate: {0} below minimum of 0.'.format(ymin))
       return True
-    if xmax >= self._width:
+    if xmax >= self.width:
       print('x-coordinate: {0} above maximum of {1}.'.format(
-        xmax, self._width - 1))
+        xmax, self.width - 1))
       return True
-    if ymax >= self._height:
+    if ymax >= self.height:
       print('y-coordinate: {0} above maximum of {1}.'.format(
-        ymax, self._height - 1))
+        ymax, self.height - 1))
       return True
     return False
+
+  # def scroll_y(self, dy):
+  #   self._scroll = (self._scroll + dy) % self.height
+  #   self.write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
+
+  # def draw_image(self, path, x=0, y=0, w=320, h=240):
+  #   """Draw image from flash.
+
+  #   Args:
+  #     path (string): Image file path.
+  #     x (int): X coordinate of image left.  Default is 0.
+  #     y (int): Y coordinate of image top.  Default is 0.
+  #     w (int): Width of image.  Default is 320.
+  #     h (int): Height of image.  Default is 240.
+  #   """
+  #   x2 = x + w - 1
+  #   y2 = y + h - 1
+  #   if self.base.is_off_grid(x, y, x2, y2):
+  #     return
+  #   with open(path, "rb") as f:
+  #     chunk_height = 1024 // w
+  #     chunk_count, remainder = divmod(h, chunk_height)
+  #     chunk_size = chunk_height * w * 2
+  #     chunk_y = y
+  #     if chunk_count:
+  #       for c in range(0, chunk_count):
+  #         buf = f.read(chunk_size)
+  #         self.base._writeblock(x, chunk_y,
+  #                x2, chunk_y + chunk_height - 1,
+  #                buf)
+  #         chunk_y += chunk_height
+  #     if remainder:
+  #       buf = f.read(remainder * w * 2)
+  #       self._writeblock(x, chunk_y,
+  #              x2, chunk_y + remainder - 1,
+  #              buf)
 
