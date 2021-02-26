@@ -14,6 +14,26 @@
 #   https://github.com/tuupola/micropython-ili934x
 
 
+"""
+sample:
+
+
+from gbd import *
+d = gbd()
+
+s = FbSprite(20, 20)
+s.fill(0)
+s.fill_circle(10, 10, 9, color565(0, 255, 0))
+s.draw_circle(10, 10, 9, color565( 255, 0, 0))
+d.blit(s, 20, 20, 0)
+d.blit(s, 30, 30, 0)
+d.show()
+
+
+"""
+
+
+
 import framebuf
 from machine import Pin, SPI
 
@@ -93,15 +113,388 @@ def gbd(rotation=None):
   _oldrotation = _rotation
   return _display
 
-class FbSprite(framebuf.FrameBuffer):
 
-  def __init__(self, width=240, height=320):
-    self.width = width
-    self.height = height
-    self._buffer = bytearray(self.width * self.height * 2)
-    self.scrolling = False
-    super().__init__(self._buffer, self.width, self.height, framebuf.RGB565)
+class DispExt():
+  def draw_circle(self, x0, y0, r, color):
+    """Draw a circle.
 
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+    self.pixel(x0, y0 + r, color)
+    self.pixel(x0, y0 - r, color)
+    self.pixel(x0 + r, y0, color)
+    self.pixel(x0 - r, y0, color)
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+      self.pixel(x0 + x, y0 + y, color)
+      self.pixel(x0 - x, y0 + y, color)
+      self.pixel(x0 + x, y0 - y, color)
+      self.pixel(x0 - x, y0 - y, color)
+      self.pixel(x0 + y, y0 + x, color)
+      self.pixel(x0 - y, y0 + x, color)
+      self.pixel(x0 + y, y0 - x, color)
+      self.pixel(x0 - y, y0 - x, color)
+
+  def fill_circle(self, x0, y0, r, color):
+    """Draw a filled circle.
+
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+    self.vline(x0, y0 - r, 2 * r + 1, color)
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+      self.vline(x0 + x, y0 - y, 2 * y + 1, color)
+      self.vline(x0 - x, y0 - y, 2 * y + 1, color)
+      self.vline(x0 - y, y0 - x, 2 * x + 1, color)
+      self.vline(x0 + y, y0 - x, 2 * x + 1, color)
+
+  def fill_ellipse(self, x0, y0, a, b, color):
+    """Draw a filled ellipse.
+
+    Args:
+      x0, y0 (int): Coordinates of center point.
+      a (int): Semi axis horizontal.
+      b (int): Semi axis vertical.
+      color (int): RGB565 color value.
+    Note:
+      The center point is the center of the x0,y0 pixel.
+      Since pixels are not divisible, the axes are integer rounded
+      up to complete on a full pixel.  Therefore the major and
+      minor axes are increased by 1.
+    """
+    a2 = a * a
+    b2 = b * b
+    twoa2 = a2 + a2
+    twob2 = b2 + b2
+    x = 0
+    y = b
+    px = 0
+    py = twoa2 * y
+    # Plot initial points
+    self.line(x0, y0 - y, x0, y0 + y, color)
+    # Region 1
+    p = round(b2 - (a2 * b) + (0.25 * a2))
+    while px < py:
+      x += 1
+      px += twob2
+      if p < 0:
+        p += b2 + px
+      else:
+        y -= 1
+        py -= twoa2
+        p += b2 + px - py
+      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
+      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
+    # Region 2
+    p = round(b2 * (x + 0.5) * (x + 0.5) +
+          a2 * (y - 1) * (y - 1) - a2 * b2)
+    while y > 0:
+      y -= 1
+      py -= twoa2
+      if p > 0:
+        p += a2 - py
+      else:
+        x += 1
+        px += twob2
+        p += a2 - py + px
+      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
+      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
+
+  def draw_ellipse(self, x0, y0, a, b, color):
+    """Draw an ellipse.
+
+    Args:
+      x0, y0 (int): Coordinates of center point.
+      a (int): Semi axis horizontal.
+      b (int): Semi axis vertical.
+      color (int): RGB565 color value.
+    Note:
+      The center point is the center of the x0,y0 pixel.
+      Since pixels are not divisible, the axes are integer rounded
+      up to complete on a full pixel.  Therefore the major and
+      minor axes are increased by 1.
+    """
+    a2 = a * a
+    b2 = b * b
+    twoa2 = a2 + a2
+    twob2 = b2 + b2
+    x = 0
+    y = b
+    px = 0
+    py = twoa2 * y
+    # Plot initial points
+    self.pixel(x0 + x, y0 + y, color)
+    self.pixel(x0 - x, y0 + y, color)
+    self.pixel(x0 + x, y0 - y, color)
+    self.pixel(x0 - x, y0 - y, color)
+    # Region 1
+    p = round(b2 - (a2 * b) + (0.25 * a2))
+    while px < py:
+      x += 1
+      px += twob2
+      if p < 0:
+        p += b2 + px
+      else:
+        y -= 1
+        py -= twoa2
+        p += b2 + px - py
+      self.pixel(x0 + x, y0 + y, color)
+      self.pixel(x0 - x, y0 + y, color)
+      self.pixel(x0 + x, y0 - y, color)
+      self.pixel(x0 - x, y0 - y, color)
+    # Region 2
+    p = round(b2 * (x + 0.5) * (x + 0.5) +
+          a2 * (y - 1) * (y - 1) - a2 * b2)
+    while y > 0:
+      y -= 1
+      py -= twoa2
+      if p > 0:
+        p += a2 - py
+      else:
+        x += 1
+        px += twob2
+        p += a2 - py + px
+      self.pixel(x0 + x, y0 + y, color)
+      self.pixel(x0 - x, y0 + y, color)
+      self.pixel(x0 + x, y0 - y, color)
+      self.pixel(x0 - x, y0 - y, color)
+
+  def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
+    """Draw a circle.
+
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+
+    self.hline(x0 + r, y0    , 2 + w - 2 * r, color)
+    self.hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
+    self.vline(x0    , y0 + r, 2 + h - 2 * r, color)
+    self.vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
+
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+
+      # Top-Left
+      self.pixel(x0 - x + r, y0 - y + r, color)
+      self.pixel(x0 - y + r, y0 - x + r, color)
+
+      # Top-Right
+      self.pixel(x0 + w + x - r - 1, y0 - y + r, color)
+      self.pixel(x0 + w + y - r - 1, y0 - x + r, color)
+
+      # Bottom-Left
+      self.pixel(x0 - x + r, y0 + h + y - r - 1, color)
+      self.pixel(x0 - y + r, y0 + h + x - r - 1, color)
+
+      # Bottom-Right
+      self.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
+      self.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
+
+  def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
+    """Draw a filled circle.
+
+    Args:
+      x0 (int): X coordinate of center point.
+      y0 (int): Y coordinate of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+    """
+    f = 1 - r
+    dx = 1
+    dy = -r - r
+    x = 0
+    y = r
+    
+    w2 = int(w - 2 * r)
+    h2 = int(h - 2 * r)
+
+    self.fill_rect(x0 + r, y0, w2, h, color)
+    while x < y:
+      if f >= 0:
+        y -= 1
+        dy += 2
+        f += dy
+      x += 1
+      dx += 2
+      f += dx
+      
+      # Left
+      self.vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
+      self.vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
+
+      #right 1
+      self.vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
+      #right 2
+      self.vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)
+
+  def fill_polygon(self, sides, x0, y0, r, color, rotate=0):
+    """Draw a filled n-sided regular polygon.
+
+    Args:
+      sides (int): Number of polygon sides.
+      x0, y0 (int): Coordinates of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+      rotate (Optional float): Rotation in degrees relative to origin.
+    Note:
+      The center point is the center of the x0,y0 pixel.
+      Since pixels are not divisible, the radius is integer rounded
+      up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
+    """
+    # Determine side coordinates
+    coords = []
+    theta = radians(rotate)
+    n = sides + 1
+    for s in range(n):
+      t = 2.0 * pi * s / sides + theta
+      coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
+    # Starting point
+    x1, y1 = coords[0]
+    # Minimum Maximum X dict
+    xdict = {y1: [x1, x1]}
+    # Iterate through coordinates
+    for row in coords[1:]:
+      x2, y2 = row
+      xprev, yprev = x2, y2
+      # Calculate perimeter
+      # Check for horizontal side
+      if y1 == y2:
+        if x1 > x2:
+          x1, x2 = x2, x1
+        if y1 in xdict:
+          xdict[y1] = [min(x1, xdict[y1][0]), max(x2, xdict[y1][1])]
+        else:
+          xdict[y1] = [x1, x2]
+        x1, y1 = xprev, yprev
+        continue
+      # Non horizontal side
+      # Changes in x, y
+      dx = x2 - x1
+      dy = y2 - y1
+      # Determine how steep the line is
+      is_steep = abs(dy) > abs(dx)
+      # Rotate line
+      if is_steep:
+        x1, y1 = y1, x1
+        x2, y2 = y2, x2
+      # Swap start and end points if necessary
+      if x1 > x2:
+        x1, x2 = x2, x1
+        y1, y2 = y2, y1
+      # Recalculate differentials
+      dx = x2 - x1
+      dy = y2 - y1
+      # Calculate error
+      error = dx >> 1
+      ystep = 1 if y1 < y2 else -1
+      y = y1
+      # Calcualte minimum and maximum x values
+      for x in range(x1, x2 + 1):
+        if is_steep:
+          if x in xdict:
+            xdict[x] = [min(y, xdict[x][0]), max(y, xdict[x][1])]
+          else:
+            xdict[x] = [y, y]
+        else:
+          if y in xdict:
+            xdict[y] = [min(x, xdict[y][0]), max(x, xdict[y][1])]
+          else:
+            xdict[y] = [x, x]
+        error -= abs(dy)
+        if error < 0:
+          y += ystep
+          error += dx
+      x1, y1 = xprev, yprev
+    # Fill polygon
+    for y, x in xdict.items():
+      self.hline(x[0], y, x[1] - x[0] + 2, color)
+
+  def draw_polygon(self, sides, x0, y0, r, color, rotate=0):
+    """Draw an n-sided regular polygon.
+
+    Args:
+      sides (int): Number of polygon sides.
+      x0, y0 (int): Coordinates of center point.
+      r (int): Radius.
+      color (int): RGB565 color value.
+      rotate (Optional float): Rotation in degrees relative to origin.
+    Note:
+      The center point is the center of the x0,y0 pixel.
+      Since pixels are not divisible, the radius is integer rounded
+      up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
+    """
+    coords = []
+    theta = radians(rotate)
+    n = sides + 1
+    for s in range(n):
+      t = 2.0 * pi * s / sides + theta
+      coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
+
+    # Cast to python float first to fix rounding errors
+    self.draw_lines(coords, color=color)
+
+  def draw_lines(self, coords, color):
+    """Draw multiple lines.
+
+    Args:
+      coords ([[int, int],...]): Line coordinate X, Y pairs
+      color (int): RGB565 color value.
+    """
+    # Starting point
+    x1, y1 = coords[0]
+    # Iterate through coordinates
+    for i in range(1, len(coords)):
+      x2, y2 = coords[i]
+      self.line(x1, y1, x2, y2, color)
+      x1, y1 = x2, y2
+
+
+
+class SwappedFrameBuffer(framebuf.FrameBuffer):
   def fill(self, c):
     c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
     super().fill(c)
@@ -151,11 +544,71 @@ class FbSprite(framebuf.FrameBuffer):
       super().blit(fbuf, x, y)
 
 
-class FbSpriteExt(DisplayExt):
-  def __init__(self, w, h):
-    super().__init__( FbSprite(w, h), w, h, framebuf.RGB565)
 
-class ILI9341FB(framebuf.FrameBuffer):
+
+class FbSprite(SwappedFrameBuffer, DispExt):
+
+  def __init__(self, width=240, height=320):
+    self.width = width
+    self.height = height
+    self._buffer = bytearray(self.width * self.height * 2)
+    self.scrolling = False
+    super().__init__(self._buffer, self.width, self.height, framebuf.RGB565)
+
+  # def fill(self, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().fill(c)
+
+  # def pixel(self, x, y, c = None):
+  #   if ( c is None):
+  #     c = super().pixel(x, y)
+  #     return ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().pixel(x, y, c)
+
+  # def hline(self, x, y, w, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().hline(x, y, w, c)
+
+  # def vline(self, x, y, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().vline(x, y, h, c)
+
+  # def line(self, x1, y1, x2, y2, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().line(x1, y1, x2, y2, c)
+
+  # def rect(self, x, y, w, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().rect(x, y, w, h, c)
+
+  # def fill_rect(self, x, y, w, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().fill_rect(x, y, w, h, c)
+
+  # def text(self, s, x, y, c = None):
+  #   if c is not None:
+  #     c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #     super().text(s, x, y, c)
+  #   else:
+  #     super().text(s, x, y)
+
+  # # def scrollself, (xstep, ystep):
+  # #   super().scroll(xstep, ystep)
+
+  # def blit(self, fbuf, x, y, key = None):
+  #   if key is not None:
+  #     key = ((key & 0xff ) << 8) | ((key & 0xff00 ) >> 8)
+  #     super().blit(fbuf, x, y, key)
+  #   else:
+  #     super().blit(fbuf, x, y)
+
+
+# class FbSpriteExt(DisplayExt):
+#   def __init__(self, w, h):
+#     super().__init__( FbSprite(w, h), w, h, framebuf.RGB565)
+
+class ILI9341FB(SwappedFrameBuffer):
 
   # Command constants from ILI9341 datasheet
   NOP = const(0x00)  # No-op
@@ -385,53 +838,53 @@ class ILI9341FB(framebuf.FrameBuffer):
 # ################################### FrameBuffer compatible functions ###################################
 # ########################################################################################################
 
-  def fill(self, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().fill(c)
+  # def fill(self, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().fill(c)
 
-  def pixel(self, x, y, c = None):
-    if ( c is None):
-      c = super().pixel(x, y)
-      return ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().pixel(x, y, c)
+  # def pixel(self, x, y, c = None):
+  #   if ( c is None):
+  #     c = super().pixel(x, y)
+  #     return ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().pixel(x, y, c)
 
-  def hline(self, x, y, w, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().hline(x, y, w, c)
+  # def hline(self, x, y, w, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().hline(x, y, w, c)
 
-  def vline(self, x, y, h, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().vline(x, y, h, c)
+  # def vline(self, x, y, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().vline(x, y, h, c)
 
-  def line(self, x1, y1, x2, y2, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().line(x1, y1, x2, y2, c)
+  # def line(self, x1, y1, x2, y2, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().line(x1, y1, x2, y2, c)
 
-  def rect(self, x, y, w, h, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().rect(x, y, w, h, c)
+  # def rect(self, x, y, w, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().rect(x, y, w, h, c)
 
-  def fill_rect(self, x, y, w, h, c):
-    c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-    super().fill_rect(x, y, w, h, c)
+  # def fill_rect(self, x, y, w, h, c):
+  #   c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #   super().fill_rect(x, y, w, h, c)
 
-  def text(self, s, x, y, c = None):
-    if c is not None:
-      c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
-      super().text(s, x, y, c)
-    else:
-      super().text(s, x, y)
+  # def text(self, s, x, y, c = None):
+  #   if c is not None:
+  #     c = ((c & 0xff ) << 8) | ((c & 0xff00 ) >> 8)
+  #     super().text(s, x, y, c)
+  #   else:
+  #     super().text(s, x, y)
 
-  # def scrollself, (xstep, ystep):
-  #   super().scroll(xstep, ystep)
+  # # def scrollself, (xstep, ystep):
+  # #   super().scroll(xstep, ystep)
 
-  def blit(self, fbuf, x, y, key = None):
-    if key is not None:
-      key = ((key & 0xff ) << 8) | ((key & 0xff00 ) >> 8)
-      super().blit(fbuf, x, y, key)
-    else:
-      super().blit(fbuf, x, y)
+  # def blit(self, fbuf, x, y, key = None):
+  #   if key is not None:
+  #     key = ((key & 0xff ) << 8) | ((key & 0xff00 ) >> 8)
+  #     super().blit(fbuf, x, y, key)
+  #   else:
+  #     super().blit(fbuf, x, y)
 
 #############################################
 
@@ -698,383 +1151,6 @@ class ILI9341FB(framebuf.FrameBuffer):
 #       self._writeblock(x, chunk_y,
 #              x + w - 1, chunk_y + remainder - 1,
 #              buf)
-
-#   def draw_circle(self, x0, y0, r, color):
-#     """Draw a circle.
-
-#     Args:
-#       x0 (int): X coordinate of center point.
-#       y0 (int): Y coordinate of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#     """
-#     f = 1 - r
-#     dx = 1
-#     dy = -r - r
-#     x = 0
-#     y = r
-#     self.pixel(x0, y0 + r, color)
-#     self.pixel(x0, y0 - r, color)
-#     self.pixel(x0 + r, y0, color)
-#     self.pixel(x0 - r, y0, color)
-#     while x < y:
-#       if f >= 0:
-#         y -= 1
-#         dy += 2
-#         f += dy
-#       x += 1
-#       dx += 2
-#       f += dx
-#       self.pixel(x0 + x, y0 + y, color)
-#       self.pixel(x0 - x, y0 + y, color)
-#       self.pixel(x0 + x, y0 - y, color)
-#       self.pixel(x0 - x, y0 - y, color)
-#       self.pixel(x0 + y, y0 + x, color)
-#       self.pixel(x0 - y, y0 + x, color)
-#       self.pixel(x0 + y, y0 - x, color)
-#       self.pixel(x0 - y, y0 - x, color)
-
-#   def fill_circle(self, x0, y0, r, color):
-#     """Draw a filled circle.
-
-#     Args:
-#       x0 (int): X coordinate of center point.
-#       y0 (int): Y coordinate of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#     """
-#     f = 1 - r
-#     dx = 1
-#     dy = -r - r
-#     x = 0
-#     y = r
-#     self.vline(x0, y0 - r, 2 * r + 1, color)
-#     while x < y:
-#       if f >= 0:
-#         y -= 1
-#         dy += 2
-#         f += dy
-#       x += 1
-#       dx += 2
-#       f += dx
-#       self.vline(x0 + x, y0 - y, 2 * y + 1, color)
-#       self.vline(x0 - x, y0 - y, 2 * y + 1, color)
-#       self.vline(x0 - y, y0 - x, 2 * x + 1, color)
-#       self.vline(x0 + y, y0 - x, 2 * x + 1, color)
-
-#   def fill_ellipse(self, x0, y0, a, b, color):
-#     """Draw a filled ellipse.
-
-#     Args:
-#       x0, y0 (int): Coordinates of center point.
-#       a (int): Semi axis horizontal.
-#       b (int): Semi axis vertical.
-#       color (int): RGB565 color value.
-#     Note:
-#       The center point is the center of the x0,y0 pixel.
-#       Since pixels are not divisible, the axes are integer rounded
-#       up to complete on a full pixel.  Therefore the major and
-#       minor axes are increased by 1.
-#     """
-#     a2 = a * a
-#     b2 = b * b
-#     twoa2 = a2 + a2
-#     twob2 = b2 + b2
-#     x = 0
-#     y = b
-#     px = 0
-#     py = twoa2 * y
-#     # Plot initial points
-#     self.line(x0, y0 - y, x0, y0 + y, color)
-#     # Region 1
-#     p = round(b2 - (a2 * b) + (0.25 * a2))
-#     while px < py:
-#       x += 1
-#       px += twob2
-#       if p < 0:
-#         p += b2 + px
-#       else:
-#         y -= 1
-#         py -= twoa2
-#         p += b2 + px - py
-#       self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-#       self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
-#     # Region 2
-#     p = round(b2 * (x + 0.5) * (x + 0.5) +
-#           a2 * (y - 1) * (y - 1) - a2 * b2)
-#     while y > 0:
-#       y -= 1
-#       py -= twoa2
-#       if p > 0:
-#         p += a2 - py
-#       else:
-#         x += 1
-#         px += twob2
-#         p += a2 - py + px
-#       self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-#       self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
-
-#   def draw_ellipse(self, x0, y0, a, b, color):
-#     """Draw an ellipse.
-
-#     Args:
-#       x0, y0 (int): Coordinates of center point.
-#       a (int): Semi axis horizontal.
-#       b (int): Semi axis vertical.
-#       color (int): RGB565 color value.
-#     Note:
-#       The center point is the center of the x0,y0 pixel.
-#       Since pixels are not divisible, the axes are integer rounded
-#       up to complete on a full pixel.  Therefore the major and
-#       minor axes are increased by 1.
-#     """
-#     a2 = a * a
-#     b2 = b * b
-#     twoa2 = a2 + a2
-#     twob2 = b2 + b2
-#     x = 0
-#     y = b
-#     px = 0
-#     py = twoa2 * y
-#     # Plot initial points
-#     self.pixel(x0 + x, y0 + y, color)
-#     self.pixel(x0 - x, y0 + y, color)
-#     self.pixel(x0 + x, y0 - y, color)
-#     self.pixel(x0 - x, y0 - y, color)
-#     # Region 1
-#     p = round(b2 - (a2 * b) + (0.25 * a2))
-#     while px < py:
-#       x += 1
-#       px += twob2
-#       if p < 0:
-#         p += b2 + px
-#       else:
-#         y -= 1
-#         py -= twoa2
-#         p += b2 + px - py
-#       self.pixel(x0 + x, y0 + y, color)
-#       self.pixel(x0 - x, y0 + y, color)
-#       self.pixel(x0 + x, y0 - y, color)
-#       self.pixel(x0 - x, y0 - y, color)
-#     # Region 2
-#     p = round(b2 * (x + 0.5) * (x + 0.5) +
-#           a2 * (y - 1) * (y - 1) - a2 * b2)
-#     while y > 0:
-#       y -= 1
-#       py -= twoa2
-#       if p > 0:
-#         p += a2 - py
-#       else:
-#         x += 1
-#         px += twob2
-#         p += a2 - py + px
-#       self.pixel(x0 + x, y0 + y, color)
-#       self.pixel(x0 - x, y0 + y, color)
-#       self.pixel(x0 + x, y0 - y, color)
-#       self.pixel(x0 - x, y0 - y, color)
-
-#   def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
-#     """Draw a circle.
-
-#     Args:
-#       x0 (int): X coordinate of center point.
-#       y0 (int): Y coordinate of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#     """
-#     f = 1 - r
-#     dx = 1
-#     dy = -r - r
-#     x = 0
-#     y = r
-
-#     self.hline(x0 + r, y0    , 2 + w - 2 * r, color)
-#     self.hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
-#     self.vline(x0    , y0 + r, 2 + h - 2 * r, color)
-#     self.vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
-
-#     while x < y:
-#       if f >= 0:
-#         y -= 1
-#         dy += 2
-#         f += dy
-#       x += 1
-#       dx += 2
-#       f += dx
-
-#       # Top-Left
-#       self.pixel(x0 - x + r, y0 - y + r, color)
-#       self.pixel(x0 - y + r, y0 - x + r, color)
-
-#       # Top-Right
-#       self.pixel(x0 + w + x - r - 1, y0 - y + r, color)
-#       self.pixel(x0 + w + y - r - 1, y0 - x + r, color)
-
-#       # Bottom-Left
-#       self.pixel(x0 - x + r, y0 + h + y - r - 1, color)
-#       self.pixel(x0 - y + r, y0 + h + x - r - 1, color)
-
-#       # Bottom-Right
-#       self.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
-#       self.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
-
-#   def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
-#     """Draw a filled circle.
-
-#     Args:
-#       x0 (int): X coordinate of center point.
-#       y0 (int): Y coordinate of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#     """
-#     f = 1 - r
-#     dx = 1
-#     dy = -r - r
-#     x = 0
-#     y = r
-    
-#     w2 = int(w - 2 * r)
-#     h2 = int(h - 2 * r)
-
-#     self.fill_rect(x0 + r, y0, w2, h, color)
-#     while x < y:
-#       if f >= 0:
-#         y -= 1
-#         dy += 2
-#         f += dy
-#       x += 1
-#       dx += 2
-#       f += dx
-      
-#       # Left
-#       self.vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
-#       self.vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
-
-#       #right 1
-#       self.vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
-#       #right 2
-#       self.vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)
-
-#   def fill_polygon(self, sides, x0, y0, r, color, rotate=0):
-#     """Draw a filled n-sided regular polygon.
-
-#     Args:
-#       sides (int): Number of polygon sides.
-#       x0, y0 (int): Coordinates of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#       rotate (Optional float): Rotation in degrees relative to origin.
-#     Note:
-#       The center point is the center of the x0,y0 pixel.
-#       Since pixels are not divisible, the radius is integer rounded
-#       up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
-#     """
-#     # Determine side coordinates
-#     coords = []
-#     theta = radians(rotate)
-#     n = sides + 1
-#     for s in range(n):
-#       t = 2.0 * pi * s / sides + theta
-#       coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
-#     # Starting point
-#     x1, y1 = coords[0]
-#     # Minimum Maximum X dict
-#     xdict = {y1: [x1, x1]}
-#     # Iterate through coordinates
-#     for row in coords[1:]:
-#       x2, y2 = row
-#       xprev, yprev = x2, y2
-#       # Calculate perimeter
-#       # Check for horizontal side
-#       if y1 == y2:
-#         if x1 > x2:
-#           x1, x2 = x2, x1
-#         if y1 in xdict:
-#           xdict[y1] = [min(x1, xdict[y1][0]), max(x2, xdict[y1][1])]
-#         else:
-#           xdict[y1] = [x1, x2]
-#         x1, y1 = xprev, yprev
-#         continue
-#       # Non horizontal side
-#       # Changes in x, y
-#       dx = x2 - x1
-#       dy = y2 - y1
-#       # Determine how steep the line is
-#       is_steep = abs(dy) > abs(dx)
-#       # Rotate line
-#       if is_steep:
-#         x1, y1 = y1, x1
-#         x2, y2 = y2, x2
-#       # Swap start and end points if necessary
-#       if x1 > x2:
-#         x1, x2 = x2, x1
-#         y1, y2 = y2, y1
-#       # Recalculate differentials
-#       dx = x2 - x1
-#       dy = y2 - y1
-#       # Calculate error
-#       error = dx >> 1
-#       ystep = 1 if y1 < y2 else -1
-#       y = y1
-#       # Calcualte minimum and maximum x values
-#       for x in range(x1, x2 + 1):
-#         if is_steep:
-#           if x in xdict:
-#             xdict[x] = [min(y, xdict[x][0]), max(y, xdict[x][1])]
-#           else:
-#             xdict[x] = [y, y]
-#         else:
-#           if y in xdict:
-#             xdict[y] = [min(x, xdict[y][0]), max(x, xdict[y][1])]
-#           else:
-#             xdict[y] = [x, x]
-#         error -= abs(dy)
-#         if error < 0:
-#           y += ystep
-#           error += dx
-#       x1, y1 = xprev, yprev
-#     # Fill polygon
-#     for y, x in xdict.items():
-#       self.hline(x[0], y, x[1] - x[0] + 2, color)
-
-#   def draw_polygon(self, sides, x0, y0, r, color, rotate=0):
-#     """Draw an n-sided regular polygon.
-
-#     Args:
-#       sides (int): Number of polygon sides.
-#       x0, y0 (int): Coordinates of center point.
-#       r (int): Radius.
-#       color (int): RGB565 color value.
-#       rotate (Optional float): Rotation in degrees relative to origin.
-#     Note:
-#       The center point is the center of the x0,y0 pixel.
-#       Since pixels are not divisible, the radius is integer rounded
-#       up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
-#     """
-#     coords = []
-#     theta = radians(rotate)
-#     n = sides + 1
-#     for s in range(n):
-#       t = 2.0 * pi * s / sides + theta
-#       coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
-
-#     # Cast to python float first to fix rounding errors
-#     self.draw_lines(coords, color=color)
-
-#   def draw_lines(self, coords, color):
-#     """Draw multiple lines.
-
-#     Args:
-#       coords ([[int, int],...]): Line coordinate X, Y pairs
-#       color (int): RGB565 color value.
-#     """
-#     # Starting point
-#     x1, y1 = coords[0]
-#     # Iterate through coordinates
-#     for i in range(1, len(coords)):
-#       x2, y2 = coords[i]
-#       self.line(x1, y1, x2, y2, color)
-#       x1, y1 = x2, y2
 
 #   def load_sprite(self, path, w, h):
 #     """Load sprite image.
