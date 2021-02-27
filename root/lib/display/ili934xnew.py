@@ -20,7 +20,8 @@ import framebuf
 from micropython import const
 from math import cos, sin, pi, radians
 import lib.fonts.glcdfont
-from lib.display.displayext import DisplayExt
+from lib.display.displaybase import * 
+#from lib.display.displayext import DisplayExt
 
 
 _RDDSDR = const(0x0f) # Read Display Self-Diagnostic Result
@@ -41,12 +42,7 @@ _NGAMCTRL = const(0xe1) # Negative Gamma Control
 
 _CHUNK = const(1024) #maximum number of pixels per spi write
 
-def color565(r, g, b):
-  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
-
-  
-class ILI9341Base:
-
+class ILIConstants:
   # Command constants from ILI9341 datasheet
   NOP = const(0x00)  # No-op
   SWRESET = const(0x01)  # Software reset
@@ -97,6 +93,12 @@ class ILI9341Base:
   POSC = const(0xED)  # Power on sequence control
   ENABLE3G = const(0xF2)  # Enable 3 gamma control
   PUMPRC = const(0xF7)  # Pump ratio control
+
+def color565(r, g, b):
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
+
+  
+class ILI9341Base(ILIConstants):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
     self.spi = spi
@@ -184,10 +186,6 @@ class ILI9341Base:
     time.sleep_ms(120)
     self .write_cmd(self.DISPLAY_ON)
 
-########################################################################################################
-###################################        Lowlevel functions        ###################################
-########################################################################################################
-
   def write_cmd(self, command, data=None):
     self.dc(0)
     self.cs(0)
@@ -258,16 +256,10 @@ class ILI9341Base:
       return
     self._writeblock(x, y, x2, y2, buf)
 
-
 class ILI9341(ILI9341Base):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
     super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
-
-  
-########################################################################################################
-################################### FrameBuffer compatible functions ###################################
-########################################################################################################
 
   def fill(self, c):
     self.clear(c)
@@ -430,8 +422,6 @@ class ILI9341(ILI9341Base):
     but the resulting colors may be unexpected due to the mismatch in color formats.
     """
     pass
-
-############################################
 
   def set_color(self,fg,bg):
     self._colormap[0] = bg>>8
@@ -1133,43 +1123,218 @@ class ILI9341(ILI9341Base):
                buf)
 
 
-class ILI9341Buffered(ILI9341Base):
+# class ILI9341Buffered(ILI9341Base):
+#   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+#     super.__init__(self, spi, cs, dc, rst, width, height, rotation)
+#     self.displayext = DisplayExt( None, width, height, framebuf.RGB565)
+#     self.fill            = self.displayext.fill
+#     self.pixel           = self.displayext.pixel
+#     self.hline           = self.displayext.hline
+#     self.vline           = self.displayext.vline
+#     self.line            = self.displayext.line
+#     self.rect            = self.displayext.rect
+#     self.fill_rect       = self.displayext.fill_rect
+#     self.text            = self.displayext.text
+#     self.scroll          = self.displayext.scroll
+#     self.blit            = self.displayext.blit
+#     self.draw_lines      = self.displayext.draw_lines
+#     self.draw_circle     = self.displayext.draw_circle
+#     self.fill_circle     = self.displayext.fill_circle
+#     self.fill_ellipse    = self.displayext.fill_ellipse
+#     self.draw_ellipse    = self.displayext.draw_ellipse
+#     self.draw_rrectangle = self.displayext.draw_rrectangle
+#     self.fill_rrectangle = self.displayext.fill_rrectangle
+#     self.fill_polygon    = self.displayext.fill_polygon
+#     self.draw_polygon    = self.displayext.draw_polygon
+#     self.load_sprite     = self.displayext.load_sprite
+#     self.draw_sprite     = self.displayext.draw_sprite
+#     self.set_color       = self.displayext.set_color
+#     self.set_pos         = self.displayext.set_pos
+#     self.reset_scroll    = self.displayext.reset_scroll
+#     self.set_font        = self.displayext.set_font
+#     self.chars           = self.displayext.chars
+#     self.next_line       = self.displayext.next_line
+#     self.write           = self.displayext.write
+#     self.print           = self.displayext.print
+#     self.get_stringsize  = self.displayext.get_stringsize
+#     self.print_centered  = self.displayext.print_centered
+#     self.get_screensize  = self.displayext.get_screensize
+#     self.is_off_grid     = self.displayext.is_off_grid
+
+#   def show(self):
+#     super().draw_sprite(self.displayext.buf, 0, 0, self.displayext.width, self.displayext.height)
+
+class ILI9341FB(SwappedFrameBuffer, ILIConstants):
+
+
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
-    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
-    self.displayext = DisplayExt( None, width, height, framebuf.RGB565)
-    self.fill            = self.displayext.fill
-    self.pixel           = self.displayext.pixel
-    self.hline           = self.displayext.hline
-    self.vline           = self.displayext.vline
-    self.line            = self.displayext.line
-    self.rect            = self.displayext.rect
-    self.fill_rect       = self.displayext.fill_rect
-    self.text            = self.displayext.text
-    self.scroll          = self.displayext.scroll
-    self.blit            = self.displayext.blit
-    self.draw_lines      = self.displayext.draw_lines
-    self.draw_circle     = self.displayext.draw_circle
-    self.fill_circle     = self.displayext.fill_circle
-    self.fill_ellipse    = self.displayext.fill_ellipse
-    self.draw_ellipse    = self.displayext.draw_ellipse
-    self.draw_rrectangle = self.displayext.draw_rrectangle
-    self.fill_rrectangle = self.displayext.fill_rrectangle
-    self.fill_polygon    = self.displayext.fill_polygon
-    self.draw_polygon    = self.displayext.draw_polygon
-    self.load_sprite     = self.displayext.load_sprite
-    self.draw_sprite     = self.displayext.draw_sprite
-    self.set_color       = self.displayext.set_color
-    self.set_pos         = self.displayext.set_pos
-    self.reset_scroll    = self.displayext.reset_scroll
-    self.set_font        = self.displayext.set_font
-    self.chars           = self.displayext.chars
-    self.next_line       = self.displayext.next_line
-    self.write           = self.displayext.write
-    self.print           = self.displayext.print
-    self.get_stringsize  = self.displayext.get_stringsize
-    self.print_centered  = self.displayext.print_centered
-    self.get_screensize  = self.displayext.get_screensize
-    self.is_off_grid     = self.displayext.is_off_grid
+    self.rotation = rotation
+    self._init_width = width
+    self._init_height = height
+    if self.rotation % 2:
+      self.width = self._init_width
+      self.height = self._init_height
+    else:
+      self.width = self._init_height
+      self.height = self._init_width
+    super().__init__(self.width, self.height)
+    self.spi = spi
+    self.cs = cs
+    self.dc = dc
+    self.rst = rst
+    self.cs.init(self.cs.OUT, value=1)
+    self.dc.init(self.dc.OUT, value=0)
+    self.rst.init(self.rst.OUT, value=0)
+    self.reset()
+    self.init()
+    self._scroll = 0
+    self._buf = bytearray(_CHUNK * 2)
+    self._colormap = bytearray(b'\x00\x00\xFF\xFF') #default white foregraound, black background
+    self._x = 0
+    self._y = 0
+    #import lib.fonts.glcdfont
+    #self._font = lib.fonts.glcdfont
+    self.scrolling = False
+    #super().__init__(self._buffer, self.width, self.height, framebuf.RGB565)
+
+  def init(self):
+    for command, data in (
+      (_RDDSDR, b"\x03\x80\x02"),
+      (self.PWCTRB, b"\x00\xc1\x30"),
+      (_PWRONCTRL, b"\x64\x03\x12\x81"),
+      (_DTCTRLA, b"\x85\x00\x78"),
+      (self.PWCTRA, b"\x39\x2c\x00\x34\x02"),
+      (_PRCTRL, b"\x20"),
+      (_DTCTRLB, b"\x00\x00"),
+      (_PWCTRL1, b"\x23"),
+      (_PWCTRL2, b"\x10"),
+      (_VMCTRL1, b"\x3e\x28"),
+      (_VMCTRL2, b"\x86")):
+      self .write_cmd(command, data)
+
+    if self.rotation == 0:          # 0 deg
+      self .write_cmd(self.MADCTL, b"\x48")
+      # self.width = self._init_height
+      # self.height = self._init_width
+    elif self.rotation == 1:        # 90 deg
+      self .write_cmd(self.MADCTL, b"\x28")
+      # self.width = self._init_width
+      # self.height = self._init_height
+    elif self.rotation == 2:        # 180 deg
+      self .write_cmd(self.MADCTL, b"\x88")
+      # self.width = self._init_height
+      # self.height = self._init_width
+    elif self.rotation == 3:        # 270 deg
+      self .write_cmd(self.MADCTL, b"\xE8")
+      # self.width = self._init_width
+      # self.height = self._init_height
+    elif self.rotation == 4:        # Mirrored + 0 deg
+      self .write_cmd(self.MADCTL, b"\xC8")
+      # self.width = self._init_height
+      # self.height = self._init_width
+    elif self.rotation == 5:        # Mirrored + 90 deg
+      self .write_cmd(self.MADCTL, b"\x68")
+      # self.width = self._init_width
+      # self.height = self._init_height
+    elif self.rotation == 6:        # Mirrored + 180 deg
+      self .write_cmd(self.MADCTL, b"\x08")
+      # self.width = self._init_height
+      # self.height = self._init_width
+    elif self.rotation == 7:        # Mirrored + 270 deg
+      self .write_cmd(self.MADCTL, b"\xA8")
+      # self.width = self._init_width
+      # self.height = self._init_height
+    else:
+      self .write_cmd(self.MADCTL, b"\x08")
+
+    for command, data in (
+      (self.PIXFMT, b"\x55"),
+      (_FRMCTR1, b"\x00\x18"),
+      (_DISCTRL, b"\x08\x82\x27"),
+      (_ENA3G, b"\x00"),
+      (self.GAMMASET, b"\x01"),
+      (_PGAMCTRL, b"\x0f\x31\x2b\x0c\x0e\x08\x4e\xf1\x37\x07\x10\x03\x0e\x09\x00"),
+      (_NGAMCTRL, b"\x00\x0e\x14\x03\x11\x07\x31\xc1\x48\x08\x0f\x0c\x31\x36\x0f")):
+      self .write_cmd(command, data)
+    self .write_cmd(self.SLPOUT)
+    time.sleep_ms(120)
+    self .write_cmd(self.DISPLAY_ON)
+
+  def write_cmd(self, command, data=None):
+    self.dc(0)
+    self.cs(0)
+    self.spi.write(bytearray([command]))
+    self.cs(1)
+    if data is not None:
+      self.write_data(data)
+
+  def write_cmd_args(self, command, *args):
+    """Write command to OLED (MicroPython).
+
+    Args:
+      command (byte): ILI9341 command code.
+      *args (optional bytes): Data to transmit.
+    """
+    self.dc(0)
+    self.cs(0)
+    self.spi.write(bytearray([command]))
+    self.cs(1)
+    # Handle any passed data
+    if len(args) > 0:
+      self.write_data(bytearray(args))
+
+  def write_data(self, data):
+    self.dc(1)
+    self.cs(0)
+    self.spi.write(data)
+    self.cs(1)
+
+  def _writeblock(self, x0, y0, x1, y1, data=None):
+    self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    self.write_cmd(self.WRITE_RAM, data)
+
+  def _readblock(self, x0, y0, x1, y1):
+    self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    #if data is None:
+    return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
+
+  def _read(self, command, count):
+    self.dc(0)
+    self.cs(0)
+    self.spi.write(bytearray([command]))
+    data = self.spi.read(count)
+    self.cs(1)
+    return data
+
+  def reset(self):
+    self.rst(0)
+    time.sleep_ms(50)
+    self.rst(1)
+    time.sleep_ms(50)
 
   def show(self):
-    super().draw_sprite(self.displayext.buf, 0, 0, self.displayext.width, self.displayext.height)
+    x2 = self.width - 1
+    y2 = self.height - 1
+    # if self.is_off_grid(0, 0, x2, y2):
+    #   return
+    self._writeblock(0, 0, x2, y2, self._buffer)
+
+  def draw_sprite(self, buf, x, y, w, h):
+    """Draw a sprite (optimized for horizontal drawing).
+
+    Args:
+      buf (bytearray): Buffer to draw.
+      x (int): Starting X position.
+      y (int): Starting Y position.
+      w (int): Width of drawing.
+      h (int): Height of drawing.
+    """
+    x2 = x + w - 1
+    y2 = y + h - 1
+    if self.is_off_grid(x, y, x2, y2):
+      return
+    self._writeblock(x, y, x2, y2, buf)
+
+

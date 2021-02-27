@@ -77,7 +77,7 @@ def test():
   """Bouncing box."""
   try:
     display = getdisplay()
-    display.clear(0)
+    display.fill(0)
 
     colors = [color565(255, 0, 0),
               color565(0, 255, 0),
@@ -99,8 +99,10 @@ def test():
       if timer_dif > 0:
         sleep_us(timer_dif)
 
+
   except KeyboardInterrupt:
-    display.cleanup()
+    #display.cleanup()
+    pass
 
 
 test()
