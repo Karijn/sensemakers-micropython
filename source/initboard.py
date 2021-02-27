@@ -37,8 +37,8 @@ class INITBOARD:
         pass
 
       f = open('/config/connect.py', "wt")
-      f.write('import ntptime')
-      f.write('ntptime.settime()')
+      # f.write('import ntptime\n')
+      # f.write('ntptime.settime()\n')
 
       f.write('import network\n')
       f.write('sta_if = network.WLAN(network.STA_IF)\n')
@@ -51,7 +51,6 @@ class INITBOARD:
   def inittouch(self):
     if self.yesno('calibrate touchpanel'):
       import calibrate
-      
       self.selecttouch = True
       self.calibration = calibrate.calibrate() 
       print(self.calibration)

@@ -4,12 +4,11 @@ i2c scanner functions
 
 # Adapted for Sensemakers. Changed pins for the TTGO T$-V1.3 board
 import time
-from ili934xnew import color565
+from lib.display.DISPLAY import getdisplay, color565
 from machine import Pin, I2C
-import fonts.tt24
-import fonts.roboto_cond_reg_12
-import fonts.roboto_cond_reg_18
-from display import create_display
+import lib.fonts.tt24
+import lib.fonts.roboto_cond_reg_12
+import lib.fonts.roboto_cond_reg_18
 
 
 def i2c_scan_once(i2c, twodigit=True):
@@ -41,11 +40,11 @@ def i2cscan(twodigit=True):
     """
     i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
 
-    display = create_display()
+    display = getdisplay()
     col = color565(255, 0, 0)
     display.set_pos(0, 0)
     display.set_color(col, 0)
-    display.set_font(fonts.tt24)
+    display.set_font(lib.fonts.tt24)
 
     display.print("I2C Tester")
     display.print(i2c_scan_once(i2c, twodigit))
@@ -57,7 +56,8 @@ def i2ctester(twodigit=True):
     """
     i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=100000)
 
-    display = create_display()
+    display = getdisplay()
+    display.clear(0)
     last_len = 0
 
     col = color565(255, 0, 0)
@@ -77,12 +77,11 @@ def i2ctester(twodigit=True):
             display.clear()
 
         last_len = len(addresses)
-        display.set_font(fonts.roboto_cond_reg_18)
+        display.set_font(lib.fonts.roboto_cond_reg_18)
         display.print("I2C Tester")
-        display.set_font(fonts.roboto_cond_reg_12)
+        display.set_font(lib.fonts.roboto_cond_reg_12)
         display.print(addresses)
 
         time.sleep_ms(1000)
 
-if __name__ == "__main__":
-    i2ctester()
+i2ctester()

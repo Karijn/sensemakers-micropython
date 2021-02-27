@@ -15,34 +15,18 @@
 
 import time
 import ustruct
-import fonts.glcdfont
 import framebuf
 from micropython import const
-from math import cos, sin, pi, radians
+
+import fonts.glcdfont
 import lib.fonts.glcdfont
 from lib.display.displaybase import * 
-#from lib.display.displayext import DisplayExt
+from lib.display.displayext import *
 
+def color565(r, g, b):
+  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
 
-_RDDSDR = const(0x0f) # Read Display Self-Diagnostic Result
-
-_DTCTRLA = const(0xe8) # Driver Timing Control A
-_DTCTRLB = const(0xea) # Driver Timing Control B
-_PWRONCTRL = const(0xed) # Power on Sequence Control
-_PRCTRL = const(0xf7) # Pump Ratio Control
-_PWCTRL1 = const(0xc0) # Power Control 1
-_PWCTRL2 = const(0xc1) # Power Control 2
-_VMCTRL1 = const(0xc5) # VCOM Control 1
-_VMCTRL2 = const(0xc7) # VCOM Control 2
-_FRMCTR1 = const(0xb1) # Frame Rate Control 1
-_DISCTRL = const(0xb6) # Display Function Control
-_ENA3G = const(0xf2) # Enable 3G
-_PGAMCTRL = const(0xe0) # Positive Gamma Control
-_NGAMCTRL = const(0xe1) # Negative Gamma Control
-
-_CHUNK = const(1024) #maximum number of pixels per spi write
-
-class ILIConstants:
+class _ILIConstants:
   # Command constants from ILI9341 datasheet
   NOP = const(0x00)  # No-op
   SWRESET = const(0x01)  # Software reset
@@ -94,11 +78,25 @@ class ILIConstants:
   ENABLE3G = const(0xF2)  # Enable 3 gamma control
   PUMPRC = const(0xF7)  # Pump ratio control
 
-def color565(r, g, b):
-  return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
+_RDDSDR = const(0x0f) # Read Display Self-Diagnostic Result
 
-  
-class ILI9341Base(ILIConstants):
+_DTCTRLA = const(0xe8) # Driver Timing Control A
+_DTCTRLB = const(0xea) # Driver Timing Control B
+_PWRONCTRL = const(0xed) # Power on Sequence Control
+_PRCTRL = const(0xf7) # Pump Ratio Control
+_PWCTRL1 = const(0xc0) # Power Control 1
+_PWCTRL2 = const(0xc1) # Power Control 2
+_VMCTRL1 = const(0xc5) # VCOM Control 1
+_VMCTRL2 = const(0xc7) # VCOM Control 2
+_FRMCTR1 = const(0xb1) # Frame Rate Control 1
+_DISCTRL = const(0xb6) # Display Function Control
+_ENA3G = const(0xf2) # Enable 3G
+_PGAMCTRL = const(0xe0) # Positive Gamma Control
+_NGAMCTRL = const(0xe1) # Negative Gamma Control
+
+_CHUNK = const(1024) #maximum number of pixels per spi write
+
+class ILI9341Base(_ILIConstants):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
     self.spi = spi
@@ -256,10 +254,27 @@ class ILI9341Base(ILIConstants):
       return
     self._writeblock(x, y, x2, y2, buf)
 
-class ILI9341(ILI9341Base):
+  def clear(self, color=0):
+    """Clear display.
+
+    Args:
+      color (Optional int): RGB565 color value (Default: 0 = Black).
+    """
+    w = self.width
+    h = self.height
+    # Clear display in 1024 byte blocks
+    if color:
+      line = color.to_bytes(2, 'big') * (w * 8)
+    else:
+      line = bytearray(w * 16)
+    for y in range(0, h, 8):
+      self._writeblock(0, y, w - 1, y + 7, line)
+
+class ILI9341(ILI9341Base, DisplayExt):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
-    super(ILI9341, self).__init__(spi, cs, dc, rst, width, height, rotation)
+    ILI9341Base.__init__(self, spi, cs, dc, rst, width, height, rotation)
+    DisplayExt.__init__(self)
 
   def fill(self, c):
     self.clear(c)
@@ -423,673 +438,6 @@ class ILI9341(ILI9341Base):
     """
     pass
 
-  def set_color(self,fg,bg):
-    self._colormap[0] = bg>>8
-    self._colormap[1] = bg & 255
-    self._colormap[2] = fg>>8
-    self._colormap[3] = fg & 255
-
-  def set_pos(self,x,y):
-    self._x = x
-    self._y = y
-
-  def reset_scroll(self):
-    self.scrolling = False
-    self._scroll = 0
-    self.scroll_y(0)
-
-  def set_font(self, font):
-    ret = self._font
-    self._font = font
-    return ret
-
-  def clear(self, color=0):
-    """Clear display.
-
-    Args:
-      color (Optional int): RGB565 color value (Default: 0 = Black).
-    """
-    w = self.width
-    h = self.height
-    # Clear display in 1024 byte blocks
-    if color:
-      line = color.to_bytes(2, 'big') * (w * 8)
-    else:
-      line = bytearray(w * 16)
-    for y in range(0, h, 8):
-      self._writeblock(0, y, w - 1, y + 7, line)
-
-  def blit_buf(self, bitbuff, x, y, w, h):
-    x = min(self.width - 1, max(0, x))
-    y = min(self.height - 1, max(0, y))
-    w = min(self.width - x, max(1, w))
-    h = min(self.height - y, max(1, h))
-    chunks, rest = divmod(w * h, _CHUNK)
-    self._writeblock(x, y, x + w - 1, y + h - 1, None)
-    written = 0
-    for iy in range(h):
-      for ix in range(w):
-        index = ix+iy*w - written
-        if index >=_CHUNK:
-          self.write_data(self._buf)
-          written += _CHUNK
-          index   -= _CHUNK
-        c = bitbuff.pixel(ix,iy)
-        self._buf[index*2] = self._colormap[c*2]
-        self._buf[index*2+1] = self._colormap[c*2+1]
-    rest = w*h - written
-    if rest != 0:
-      mv = memoryview(self._buf)
-      self.write_data(mv[:rest*2])
-
-  def chars(self, str, x, y):
-    str_w = self._font.get_width(str)
-    div, rem = divmod(self._font.height(),8)
-    nbytes = div+1 if rem else div
-    buf = bytearray(str_w * nbytes)
-    pos = 0
-    for ch in str:
-      glyph, char_w = self._font.get_ch(ch)
-      for row in range(nbytes):
-        index = row*str_w + pos
-        for i in range(char_w):
-          buf[index+i] = glyph[nbytes*i+row]
-      pos += char_w
-    fb = framebuf.FrameBuffer(buf,str_w, self._font.height(), framebuf.MONO_VLSB)
-    self.blit_buf(fb, x, y, str_w, self._font.height())
-    return x+str_w
-
-  def scroll_y(self, dy):
-    self._scroll = (self._scroll + dy) % self.height
-    self .write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
-
-  def next_line(self, cury, char_h):
-    global scrolling
-    if not self.scrolling:
-      res = cury + char_h
-      self.scrolling = (res >= self.height)
-    if self.scrolling:
-      self.scroll_y(char_h)
-      res = (self.height - char_h + self._scroll)%self.height
-      self.fill_rect(0, res, self.width, self._font.height())
-    return res
-
-  def write(self, text): #does character wrap, compatible with stream output
-    curx = self._x; cury = self._y
-    char_h = self._font.height()
-    width = 0
-    written = 0
-    for pos, ch in enumerate(text):
-      if ch == '\n':
-        if pos>0:
-          self.chars(text[written:pos],curx,cury)
-        curx = 0; written = pos+1; width = 0
-        cury = self.next_line(cury,char_h)
-      else:
-        char_w = self._font.get_width(ch)
-        if curx + width + char_w >= self.width:
-          self.chars(text[written:pos], curx,cury)
-          curx = 0 ; written = pos; width = char_h
-          cury = self.next_line(cury,char_h)
-        else:
-          width += char_w
-    if written<len(text):
-      curx = self.chars(text[written:], curx,cury)
-    self._x = curx; self._y = cury
-
-  def print(self, text): #does word wrap, leaves self._x unchanged
-    cury = self._y; curx = self._x
-    char_h = self._font.height()
-    char_w = self._font.max_width()
-    lines = text.split('\n')
-    for line in lines:
-      words = line.split(' ')
-      for word in words:
-        if curx + self._font.get_width(word) >= self.width:
-          curx = self._x; cury = self.next_line(cury,char_h)
-          while self._font.get_width(word) > self.width:
-            self.chars(word[:self.width//char_w],curx,cury)
-            word = word[self.width//char_w:]
-            cury = self.next_line(cury,char_h)
-        if len(word)>0:
-          curx = self.chars(word + ' ', curx, cury)
-      curx = self._x; cury = self.next_line(cury, char_h)
-    self._y = cury
-
-  def get_stringsize(self, s):
-      hor = 0
-      for c in s:
-          fontptr, vert, cols = self._font.get_ch(ord(c))
-          hor += cols
-      return hor, vert
-
-  def print_centered(self, x, y, s):
-      length, height = self.get_stringsize(s)
-      self.set_pos(x - length // 2, y - height // 2)
-      self.print(s)
-
-  def get_screensize(self):
-    return self.width, self.height 
-
-  def is_off_grid(self, xmin, ymin, xmax, ymax):
-    """Check if coordinates extend past display boundaries.
-
-    Args:
-      xmin (int): Minimum horizontal pixel.
-      ymin (int): Minimum vertical pixel.
-      xmax (int): Maximum horizontal pixel.
-      ymax (int): Maximum vertical pixel.
-    Returns:
-      boolean: False = Coordinates OK, True = Error.
-    """
-    if xmin < 0:
-      print('x-coordinate: {0} below minimum of 0.'.format(xmin))
-      return True
-    if ymin < 0:
-      print('y-coordinate: {0} below minimum of 0.'.format(ymin))
-      return True
-    if xmax >= self.width:
-      print('x-coordinate: {0} above maximum of {1}.'.format(
-        xmax, self.width - 1))
-      return True
-    if ymax >= self.height:
-      print('y-coordinate: {0} above maximum of {1}.'.format(
-        ymax, self.height - 1))
-      return True
-    return False
-
-  def set_scroll_window(self, top, bottom):
-    """Set the height of the top and bottom scroll margins.
-
-    Args:
-      top (int): Height of top scroll margin
-      bottom (int): Height of bottom scroll margin
-    """
-    if top + bottom <= self.height:
-      middle = self.height - (top + bottom)
-      self.write_cmd_args(self.VSCRDEF,
-               top >> 8,
-               top & 0xFF,
-               middle >> 8,
-               middle & 0xFF,
-               bottom >> 8,
-               bottom & 0xFF)
-
-  def scroll_window(self, y):
-    """Scroll display vertically.
-
-    Args:
-      y (int): Number of pixels to scroll display.
-    """
-    self.write_cmd_args(self.VSCRSADD, y >> 8, y & 0xFF)
-
-  def fill_vrect(self, x, y, w, h, color):
-    """Draw a filled rectangle (optimized for vertical drawing).
-
-    Args:
-      x (int): Starting X position.
-      y (int): Starting Y position.
-      w (int): Width of rectangle.
-      h (int): Height of rectangle.
-      color (int): RGB565 color value.
-    """
-    if self.is_off_grid(x, y, x + w - 1, y + h - 1):
-      return
-    chunk_width = 1024 // h
-    chunk_count, remainder = divmod(w, chunk_width)
-    chunk_size = chunk_width * h
-    chunk_x = x
-    if chunk_count:
-      buf = color.to_bytes(2, 'big') * chunk_size
-      for c in range(0, chunk_count):
-        self._writeblock(chunk_x, y,
-               chunk_x + chunk_width - 1, y + h - 1,
-               buf)
-        chunk_x += chunk_width
-
-    if remainder:
-      buf = color.to_bytes(2, 'big') * remainder * h
-      self._writeblock(chunk_x, y,
-             chunk_x + remainder - 1, y + h - 1,
-             buf)
-
-  def fill_hrect(self, x, y, w, h, color):
-    """Draw a filled rectangle (optimized for horizontal drawing).
-
-    Args:
-      x (int): Starting X position.
-      y (int): Starting Y position.
-      w (int): Width of rectangle.
-      h (int): Height of rectangle.
-      color (int): RGB565 color value.
-    """
-    if self.is_off_grid(x, y, x + w - 1, y + h - 1):
-      return
-    chunk_height = 1024 // w
-    chunk_count, remainder = divmod(h, chunk_height)
-    chunk_size = chunk_height * w
-    chunk_y = y
-    if chunk_count:
-      buf = color.to_bytes(2, 'big') * chunk_size
-      for c in range(0, chunk_count):
-        self._writeblock(x, chunk_y,
-               x + w - 1, chunk_y + chunk_height - 1,
-               buf)
-        chunk_y += chunk_height
-
-    if remainder:
-      buf = color.to_bytes(2, 'big') * remainder * w
-      self._writeblock(x, chunk_y,
-             x + w - 1, chunk_y + remainder - 1,
-             buf)
-
-  def draw_circle(self, x0, y0, r, color):
-    """Draw a circle.
-
-    Args:
-      x0 (int): X coordinate of center point.
-      y0 (int): Y coordinate of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-    """
-    f = 1 - r
-    dx = 1
-    dy = -r - r
-    x = 0
-    y = r
-    self.pixel(x0, y0 + r, color)
-    self.pixel(x0, y0 - r, color)
-    self.pixel(x0 + r, y0, color)
-    self.pixel(x0 - r, y0, color)
-    while x < y:
-      if f >= 0:
-        y -= 1
-        dy += 2
-        f += dy
-      x += 1
-      dx += 2
-      f += dx
-      self.pixel(x0 + x, y0 + y, color)
-      self.pixel(x0 - x, y0 + y, color)
-      self.pixel(x0 + x, y0 - y, color)
-      self.pixel(x0 - x, y0 - y, color)
-      self.pixel(x0 + y, y0 + x, color)
-      self.pixel(x0 - y, y0 + x, color)
-      self.pixel(x0 + y, y0 - x, color)
-      self.pixel(x0 - y, y0 - x, color)
-
-  def fill_circle(self, x0, y0, r, color):
-    """Draw a filled circle.
-
-    Args:
-      x0 (int): X coordinate of center point.
-      y0 (int): Y coordinate of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-    """
-    f = 1 - r
-    dx = 1
-    dy = -r - r
-    x = 0
-    y = r
-    self.vline(x0, y0 - r, 2 * r + 1, color)
-    while x < y:
-      if f >= 0:
-        y -= 1
-        dy += 2
-        f += dy
-      x += 1
-      dx += 2
-      f += dx
-      self.vline(x0 + x, y0 - y, 2 * y + 1, color)
-      self.vline(x0 - x, y0 - y, 2 * y + 1, color)
-      self.vline(x0 - y, y0 - x, 2 * x + 1, color)
-      self.vline(x0 + y, y0 - x, 2 * x + 1, color)
-
-  def fill_ellipse(self, x0, y0, a, b, color):
-    """Draw a filled ellipse.
-
-    Args:
-      x0, y0 (int): Coordinates of center point.
-      a (int): Semi axis horizontal.
-      b (int): Semi axis vertical.
-      color (int): RGB565 color value.
-    Note:
-      The center point is the center of the x0,y0 pixel.
-      Since pixels are not divisible, the axes are integer rounded
-      up to complete on a full pixel.  Therefore the major and
-      minor axes are increased by 1.
-    """
-    a2 = a * a
-    b2 = b * b
-    twoa2 = a2 + a2
-    twob2 = b2 + b2
-    x = 0
-    y = b
-    px = 0
-    py = twoa2 * y
-    # Plot initial points
-    self.line(x0, y0 - y, x0, y0 + y, color)
-    # Region 1
-    p = round(b2 - (a2 * b) + (0.25 * a2))
-    while px < py:
-      x += 1
-      px += twob2
-      if p < 0:
-        p += b2 + px
-      else:
-        y -= 1
-        py -= twoa2
-        p += b2 + px - py
-      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
-    # Region 2
-    p = round(b2 * (x + 0.5) * (x + 0.5) +
-          a2 * (y - 1) * (y - 1) - a2 * b2)
-    while y > 0:
-      y -= 1
-      py -= twoa2
-      if p > 0:
-        p += a2 - py
-      else:
-        x += 1
-        px += twob2
-        p += a2 - py + px
-      self.line(x0 + x, y0 - y, x0 + x, y0 + y, color)
-      self.line(x0 - x, y0 - y, x0 - x, y0 + y, color)
-
-  def draw_ellipse(self, x0, y0, a, b, color):
-    """Draw an ellipse.
-
-    Args:
-      x0, y0 (int): Coordinates of center point.
-      a (int): Semi axis horizontal.
-      b (int): Semi axis vertical.
-      color (int): RGB565 color value.
-    Note:
-      The center point is the center of the x0,y0 pixel.
-      Since pixels are not divisible, the axes are integer rounded
-      up to complete on a full pixel.  Therefore the major and
-      minor axes are increased by 1.
-    """
-    a2 = a * a
-    b2 = b * b
-    twoa2 = a2 + a2
-    twob2 = b2 + b2
-    x = 0
-    y = b
-    px = 0
-    py = twoa2 * y
-    # Plot initial points
-    self.pixel(x0 + x, y0 + y, color)
-    self.pixel(x0 - x, y0 + y, color)
-    self.pixel(x0 + x, y0 - y, color)
-    self.pixel(x0 - x, y0 - y, color)
-    # Region 1
-    p = round(b2 - (a2 * b) + (0.25 * a2))
-    while px < py:
-      x += 1
-      px += twob2
-      if p < 0:
-        p += b2 + px
-      else:
-        y -= 1
-        py -= twoa2
-        p += b2 + px - py
-      self.pixel(x0 + x, y0 + y, color)
-      self.pixel(x0 - x, y0 + y, color)
-      self.pixel(x0 + x, y0 - y, color)
-      self.pixel(x0 - x, y0 - y, color)
-    # Region 2
-    p = round(b2 * (x + 0.5) * (x + 0.5) +
-          a2 * (y - 1) * (y - 1) - a2 * b2)
-    while y > 0:
-      y -= 1
-      py -= twoa2
-      if p > 0:
-        p += a2 - py
-      else:
-        x += 1
-        px += twob2
-        p += a2 - py + px
-      self.pixel(x0 + x, y0 + y, color)
-      self.pixel(x0 - x, y0 + y, color)
-      self.pixel(x0 + x, y0 - y, color)
-      self.pixel(x0 - x, y0 - y, color)
-
-  def draw_rrectangle(self, x0=50, y0=50, w=30, h=50, r=10, color=color565(64, 64, 255)):
-    """Draw a circle.
-
-    Args:
-      x0 (int): X coordinate of center point.
-      y0 (int): Y coordinate of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-    """
-    f = 1 - r
-    dx = 1
-    dy = -r - r
-    x = 0
-    y = r
-
-    self.hline(x0 + r, y0    , 2 + w - 2 * r, color)
-    self.hline(x0 + r, y0 + h - 1, 2 + w - 2 * r, color)
-    self.vline(x0    , y0 + r, 2 + h - 2 * r, color)
-    self.vline(x0 + w - 1, y0 + r, 2 + h - 2 * r, color)
-
-    while x < y:
-      if f >= 0:
-        y -= 1
-        dy += 2
-        f += dy
-      x += 1
-      dx += 2
-      f += dx
-
-      # Top-Left
-      self.pixel(x0 - x + r, y0 - y + r, color)
-      self.pixel(x0 - y + r, y0 - x + r, color)
-
-      # Top-Right
-      self.pixel(x0 + w + x - r - 1, y0 - y + r, color)
-      self.pixel(x0 + w + y - r - 1, y0 - x + r, color)
-
-      # Bottom-Left
-      self.pixel(x0 - x + r, y0 + h + y - r - 1, color)
-      self.pixel(x0 - y + r, y0 + h + x - r - 1, color)
-
-      # Bottom-Right
-      self.pixel(x0 + w + x - r - 1, y0 + h + y - r - 1, color)
-      self.pixel(x0 + w + y - r - 1, y0 + h + x - r - 1, color)
-
-  def fill_rrectangle(self, x0=100, y0=200, w=50, h=70, r=10, color=color565(64, 64, 255)):
-    """Draw a filled circle.
-
-    Args:
-      x0 (int): X coordinate of center point.
-      y0 (int): Y coordinate of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-    """
-    f = 1 - r
-    dx = 1
-    dy = -r - r
-    x = 0
-    y = r
-    
-    w2 = int(w - 2 * r)
-    h2 = int(h - 2 * r)
-
-    self.fill_rect(x0 + r, y0, w2, h, color)
-    while x < y:
-      if f >= 0:
-        y -= 1
-        dy += 2
-        f += dy
-      x += 1
-      dx += 2
-      f += dx
-      
-      # Left
-      self.vline(x0 - x + r, y0 - y + r, h2 + 2 * y, color)
-      self.vline(x0 - y + r, y0 - x + r, h2 + 2 * x, color)
-
-      #right 1
-      self.vline(x0 + w + x - r - 1, y0 - y + r, h2 + 2 * y, color)
-      #right 2
-      self.vline(x0 + w + y - r - 1, y0 - x + r, h2 + 2 * x, color)
-
-  def fill_polygon(self, sides, x0, y0, r, color, rotate=0):
-    """Draw a filled n-sided regular polygon.
-
-    Args:
-      sides (int): Number of polygon sides.
-      x0, y0 (int): Coordinates of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-      rotate (Optional float): Rotation in degrees relative to origin.
-    Note:
-      The center point is the center of the x0,y0 pixel.
-      Since pixels are not divisible, the radius is integer rounded
-      up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
-    """
-    # Determine side coordinates
-    coords = []
-    theta = radians(rotate)
-    n = sides + 1
-    for s in range(n):
-      t = 2.0 * pi * s / sides + theta
-      coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
-    # Starting point
-    x1, y1 = coords[0]
-    # Minimum Maximum X dict
-    xdict = {y1: [x1, x1]}
-    # Iterate through coordinates
-    for row in coords[1:]:
-      x2, y2 = row
-      xprev, yprev = x2, y2
-      # Calculate perimeter
-      # Check for horizontal side
-      if y1 == y2:
-        if x1 > x2:
-          x1, x2 = x2, x1
-        if y1 in xdict:
-          xdict[y1] = [min(x1, xdict[y1][0]), max(x2, xdict[y1][1])]
-        else:
-          xdict[y1] = [x1, x2]
-        x1, y1 = xprev, yprev
-        continue
-      # Non horizontal side
-      # Changes in x, y
-      dx = x2 - x1
-      dy = y2 - y1
-      # Determine how steep the line is
-      is_steep = abs(dy) > abs(dx)
-      # Rotate line
-      if is_steep:
-        x1, y1 = y1, x1
-        x2, y2 = y2, x2
-      # Swap start and end points if necessary
-      if x1 > x2:
-        x1, x2 = x2, x1
-        y1, y2 = y2, y1
-      # Recalculate differentials
-      dx = x2 - x1
-      dy = y2 - y1
-      # Calculate error
-      error = dx >> 1
-      ystep = 1 if y1 < y2 else -1
-      y = y1
-      # Calcualte minimum and maximum x values
-      for x in range(x1, x2 + 1):
-        if is_steep:
-          if x in xdict:
-            xdict[x] = [min(y, xdict[x][0]), max(y, xdict[x][1])]
-          else:
-            xdict[x] = [y, y]
-        else:
-          if y in xdict:
-            xdict[y] = [min(x, xdict[y][0]), max(x, xdict[y][1])]
-          else:
-            xdict[y] = [x, x]
-        error -= abs(dy)
-        if error < 0:
-          y += ystep
-          error += dx
-      x1, y1 = xprev, yprev
-    # Fill polygon
-    for y, x in xdict.items():
-      self.hline(x[0], y, x[1] - x[0] + 2, color)
-
-  def draw_polygon(self, sides, x0, y0, r, color, rotate=0):
-    """Draw an n-sided regular polygon.
-
-    Args:
-      sides (int): Number of polygon sides.
-      x0, y0 (int): Coordinates of center point.
-      r (int): Radius.
-      color (int): RGB565 color value.
-      rotate (Optional float): Rotation in degrees relative to origin.
-    Note:
-      The center point is the center of the x0,y0 pixel.
-      Since pixels are not divisible, the radius is integer rounded
-      up to complete on a full pixel.  Therefore diameter = 2 x r + 1.
-    """
-    coords = []
-    theta = radians(rotate)
-    n = sides + 1
-    for s in range(n):
-      t = 2.0 * pi * s / sides + theta
-      coords.append([int(r * cos(t) + x0), int(r * sin(t) + y0)])
-
-    # Cast to python float first to fix rounding errors
-    self.draw_lines(coords, color=color)
-
-  def draw_lines(self, coords, color):
-    """Draw multiple lines.
-
-    Args:
-      coords ([[int, int],...]): Line coordinate X, Y pairs
-      color (int): RGB565 color value.
-    """
-    # Starting point
-    x1, y1 = coords[0]
-    # Iterate through coordinates
-    for i in range(1, len(coords)):
-      x2, y2 = coords[i]
-      self.line(x1, y1, x2, y2, color)
-      x1, y1 = x2, y2
-
-  def load_sprite(self, path, w, h):
-    """Load sprite image.
-
-    Args:
-      path (string): Image file path.
-      w (int): Width of image.
-      h (int): Height of image.
-    Notes:
-      w x h cannot exceed 2048
-    """
-    buf_size = w * h * 2
-    with open(path, "rb") as f:
-      return f.read(buf_size)
-
-  def draw_sprite(self, buf, x, y, w, h):
-    """Draw a sprite (optimized for horizontal drawing).
-
-    Args:
-      buf (bytearray): Buffer to draw.
-      x (int): Starting X position.
-      y (int): Starting Y position.
-      w (int): Width of drawing.
-      h (int): Height of drawing.
-    """
-    x2 = x + w - 1
-    y2 = y + h - 1
-    if self.is_off_grid(x, y, x2, y2):
-      return
-    self._writeblock(x, y, x2, y2, buf)
-
   def draw_image(self, path, x=0, y=0, w=320, h=240):
     """Draw image from flash.
 
@@ -1122,52 +470,258 @@ class ILI9341(ILI9341Base):
                x2, chunk_y + remainder - 1,
                buf)
 
+  # def set_color(self,fg,bg):
+  #   self._colormap[0] = bg>>8
+  #   self._colormap[1] = bg & 255
+  #   self._colormap[2] = fg>>8
+  #   self._colormap[3] = fg & 255
 
-# class ILI9341Buffered(ILI9341Base):
-#   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
-#     super.__init__(self, spi, cs, dc, rst, width, height, rotation)
-#     self.displayext = DisplayExt( None, width, height, framebuf.RGB565)
-#     self.fill            = self.displayext.fill
-#     self.pixel           = self.displayext.pixel
-#     self.hline           = self.displayext.hline
-#     self.vline           = self.displayext.vline
-#     self.line            = self.displayext.line
-#     self.rect            = self.displayext.rect
-#     self.fill_rect       = self.displayext.fill_rect
-#     self.text            = self.displayext.text
-#     self.scroll          = self.displayext.scroll
-#     self.blit            = self.displayext.blit
-#     self.draw_lines      = self.displayext.draw_lines
-#     self.draw_circle     = self.displayext.draw_circle
-#     self.fill_circle     = self.displayext.fill_circle
-#     self.fill_ellipse    = self.displayext.fill_ellipse
-#     self.draw_ellipse    = self.displayext.draw_ellipse
-#     self.draw_rrectangle = self.displayext.draw_rrectangle
-#     self.fill_rrectangle = self.displayext.fill_rrectangle
-#     self.fill_polygon    = self.displayext.fill_polygon
-#     self.draw_polygon    = self.displayext.draw_polygon
-#     self.load_sprite     = self.displayext.load_sprite
-#     self.draw_sprite     = self.displayext.draw_sprite
-#     self.set_color       = self.displayext.set_color
-#     self.set_pos         = self.displayext.set_pos
-#     self.reset_scroll    = self.displayext.reset_scroll
-#     self.set_font        = self.displayext.set_font
-#     self.chars           = self.displayext.chars
-#     self.next_line       = self.displayext.next_line
-#     self.write           = self.displayext.write
-#     self.print           = self.displayext.print
-#     self.get_stringsize  = self.displayext.get_stringsize
-#     self.print_centered  = self.displayext.print_centered
-#     self.get_screensize  = self.displayext.get_screensize
-#     self.is_off_grid     = self.displayext.is_off_grid
+  # def set_pos(self,x,y):
+  #   self._x = x
+  #   self._y = y
 
-#   def show(self):
-#     super().draw_sprite(self.displayext.buf, 0, 0, self.displayext.width, self.displayext.height)
+  # def reset_scroll(self):
+  #   self.scrolling = False
+  #   self._scroll = 0
+  #   self.scroll_y(0)
 
-class ILI9341FB(SwappedFrameBuffer, ILIConstants):
 
+  # def blit_buf(self, bitbuff, x, y, w, h):
+  #   x = min(self.width - 1, max(0, x))
+  #   y = min(self.height - 1, max(0, y))
+  #   w = min(self.width - x, max(1, w))
+  #   h = min(self.height - y, max(1, h))
+  #   chunks, rest = divmod(w * h, _CHUNK)
+  #   self._writeblock(x, y, x + w - 1, y + h - 1, None)
+  #   written = 0
+  #   for iy in range(h):
+  #     for ix in range(w):
+  #       index = ix+iy*w - written
+  #       if index >=_CHUNK:
+  #         self.write_data(self._buf)
+  #         written += _CHUNK
+  #         index   -= _CHUNK
+  #       c = bitbuff.pixel(ix,iy)
+  #       self._buf[index*2] = self._colormap[c*2]
+  #       self._buf[index*2+1] = self._colormap[c*2+1]
+  #   rest = w*h - written
+  #   if rest != 0:
+  #     mv = memoryview(self._buf)
+  #     self.write_data(mv[:rest*2])
+
+  # def chars(self, str, x, y):
+  #   str_w = self._font.get_width(str)
+  #   div, rem = divmod(self._font.height(),8)
+  #   nbytes = div+1 if rem else div
+  #   buf = bytearray(str_w * nbytes)
+  #   pos = 0
+  #   for ch in str:
+  #     glyph, char_w = self._font.get_ch(ch)
+  #     for row in range(nbytes):
+  #       index = row*str_w + pos
+  #       for i in range(char_w):
+  #         buf[index+i] = glyph[nbytes*i+row]
+  #     pos += char_w
+  #   fb = framebuf.FrameBuffer(buf,str_w, self._font.height(), framebuf.MONO_VLSB)
+  #   self.blit_buf(fb, x, y, str_w, self._font.height())
+  #   return x+str_w
+
+  # def scroll_y(self, dy):
+  #   self._scroll = (self._scroll + dy) % self.height
+  #   self .write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
+
+  # def next_line(self, cury, char_h):
+  #   global scrolling
+  #   if not self.scrolling:
+  #     res = cury + char_h
+  #     self.scrolling = (res >= self.height)
+  #   if self.scrolling:
+  #     self.scroll_y(char_h)
+  #     res = (self.height - char_h + self._scroll)%self.height
+  #     self.fill_rect(0, res, self.width, self._font.height())
+  #   return res
+
+
+
+  # def is_off_grid(self, xmin, ymin, xmax, ymax):
+  #   """Check if coordinates extend past display boundaries.
+
+  #   Args:
+  #     xmin (int): Minimum horizontal pixel.
+  #     ymin (int): Minimum vertical pixel.
+  #     xmax (int): Maximum horizontal pixel.
+  #     ymax (int): Maximum vertical pixel.
+  #   Returns:
+  #     boolean: False = Coordinates OK, True = Error.
+  #   """
+  #   if xmin < 0:
+  #     print('x-coordinate: {0} below minimum of 0.'.format(xmin))
+  #     return True
+  #   if ymin < 0:
+  #     print('y-coordinate: {0} below minimum of 0.'.format(ymin))
+  #     return True
+  #   if xmax >= self.width:
+  #     print('x-coordinate: {0} above maximum of {1}.'.format(
+  #       xmax, self.width - 1))
+  #     return True
+  #   if ymax >= self.height:
+  #     print('y-coordinate: {0} above maximum of {1}.'.format(
+  #       ymax, self.height - 1))
+  #     return True
+  #   return False
+
+  # def set_scroll_window(self, top, bottom):
+  #   """Set the height of the top and bottom scroll margins.
+
+  #   Args:
+  #     top (int): Height of top scroll margin
+  #     bottom (int): Height of bottom scroll margin
+  #   """
+  #   if top + bottom <= self.height:
+  #     middle = self.height - (top + bottom)
+  #     self.write_cmd_args(self.VSCRDEF,
+  #              top >> 8,
+  #              top & 0xFF,
+  #              middle >> 8,
+  #              middle & 0xFF,
+  #              bottom >> 8,
+  #              bottom & 0xFF)
+
+  # def scroll_window(self, y):
+  #   """Scroll display vertically.
+
+  #   Args:
+  #     y (int): Number of pixels to scroll display.
+  #   """
+  #   self.write_cmd_args(self.VSCRSADD, y >> 8, y & 0xFF)
+
+  # def fill_vrect(self, x, y, w, h, color):
+  #   """Draw a filled rectangle (optimized for vertical drawing).
+
+  #   Args:
+  #     x (int): Starting X position.
+  #     y (int): Starting Y position.
+  #     w (int): Width of rectangle.
+  #     h (int): Height of rectangle.
+  #     color (int): RGB565 color value.
+  #   """
+  #   if self.is_off_grid(x, y, x + w - 1, y + h - 1):
+  #     return
+  #   chunk_width = 1024 // h
+  #   chunk_count, remainder = divmod(w, chunk_width)
+  #   chunk_size = chunk_width * h
+  #   chunk_x = x
+  #   if chunk_count:
+  #     buf = color.to_bytes(2, 'big') * chunk_size
+  #     for c in range(0, chunk_count):
+  #       self._writeblock(chunk_x, y,
+  #              chunk_x + chunk_width - 1, y + h - 1,
+  #              buf)
+  #       chunk_x += chunk_width
+
+  #   if remainder:
+  #     buf = color.to_bytes(2, 'big') * remainder * h
+  #     self._writeblock(chunk_x, y,
+  #            chunk_x + remainder - 1, y + h - 1,
+  #            buf)
+
+  def fill_hrect(self, x, y, w, h, color):
+    """Draw a filled rectangle (optimized for horizontal drawing).
+
+    Args:
+      x (int): Starting X position.
+      y (int): Starting Y position.
+      w (int): Width of rectangle.
+      h (int): Height of rectangle.
+      color (int): RGB565 color value.
+    """
+    if self.is_off_grid(x, y, x + w - 1, y + h - 1):
+      return
+    chunk_height = 1024 // w
+    chunk_count, remainder = divmod(h, chunk_height)
+    chunk_size = chunk_height * w
+    chunk_y = y
+    if chunk_count:
+      buf = color.to_bytes(2, 'big') * chunk_size
+      for c in range(0, chunk_count):
+        self._writeblock(x, chunk_y,
+               x + w - 1, chunk_y + chunk_height - 1,
+               buf)
+        chunk_y += chunk_height
+
+    if remainder:
+      buf = color.to_bytes(2, 'big') * remainder * w
+      self._writeblock(x, chunk_y,
+             x + w - 1, chunk_y + remainder - 1,
+             buf)
+
+
+  # def load_sprite(self, path, w, h):
+  #   """Load sprite image.
+
+  #   Args:
+  #     path (string): Image file path.
+  #     w (int): Width of image.
+  #     h (int): Height of image.
+  #   Notes:
+  #     w x h cannot exceed 2048
+  #   """
+  #   buf_size = w * h * 2
+  #   with open(path, "rb") as f:
+  #     return f.read(buf_size)
+
+  # def draw_sprite(self, buf, x, y, w, h):
+  #   """Draw a sprite (optimized for horizontal drawing).
+
+  #   Args:
+  #     buf (bytearray): Buffer to draw.
+  #     x (int): Starting X position.
+  #     y (int): Starting Y position.
+  #     w (int): Width of drawing.
+  #     h (int): Height of drawing.
+  #   """
+  #   x2 = x + w - 1
+  #   y2 = y + h - 1
+  #   if self.is_off_grid(x, y, x2, y2):
+  #     return
+  #   self._writeblock(x, y, x2, y2, buf)
+
+  # def draw_image(self, path, x=0, y=0, w=320, h=240):
+  #   """Draw image from flash.
+
+  #   Args:
+  #     path (string): Image file path.
+  #     x (int): X coordinate of image left.  Default is 0.
+  #     y (int): Y coordinate of image top.  Default is 0.
+  #     w (int): Width of image.  Default is 320.
+  #     h (int): Height of image.  Default is 240.
+  #   """
+  #   x2 = x + w - 1
+  #   y2 = y + h - 1
+  #   if self.is_off_grid(x, y, x2, y2):
+  #     return
+  #   with open(path, "rb") as f:
+  #     chunk_height = 1024 // w
+  #     chunk_count, remainder = divmod(h, chunk_height)
+  #     chunk_size = chunk_height * w * 2
+  #     chunk_y = y
+  #     if chunk_count:
+  #       for c in range(0, chunk_count):
+  #         buf = f.read(chunk_size)
+  #         self._writeblock(x, chunk_y,
+  #                x2, chunk_y + chunk_height - 1,
+  #                buf)
+  #         chunk_y += chunk_height
+  #     if remainder:
+  #       buf = f.read(remainder * w * 2)
+  #       self._writeblock(x, chunk_y,
+  #              x2, chunk_y + remainder - 1,
+  #              buf)
+
+class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
 
   def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+    print('init ILI9341FB {}, {} rot: {}'.format(width, height, rotation))
     self.rotation = rotation
     self._init_width = width
     self._init_height = height
@@ -1177,7 +731,7 @@ class ILI9341FB(SwappedFrameBuffer, ILIConstants):
     else:
       self.width = self._init_height
       self.height = self._init_width
-    super().__init__(self.width, self.height)
+    SwappedFrameBuffer.__init__(self, width, height)
     self.spi = spi
     self.cs = cs
     self.dc = dc
@@ -1195,7 +749,6 @@ class ILI9341FB(SwappedFrameBuffer, ILIConstants):
     #import lib.fonts.glcdfont
     #self._font = lib.fonts.glcdfont
     self.scrolling = False
-    #super().__init__(self._buffer, self.width, self.height, framebuf.RGB565)
 
   def init(self):
     for command, data in (
@@ -1336,5 +889,41 @@ class ILI9341FB(SwappedFrameBuffer, ILIConstants):
     if self.is_off_grid(x, y, x2, y2):
       return
     self._writeblock(x, y, x2, y2, buf)
+
+class ILI9341FBEx(ILI9341FB, DisplayExt):
+
+  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
+    ILI9341FB.__init__(self, spi, cs, dc, rst, width, height, rotation)
+    DisplayExt.__init__(self)
+    
+  def fill(self, c):
+    ILI9341FB.fill(self, c)
+
+  def pixel(self, x, y, c):
+    ILI9341FB.pixel(self, x, y, c)
+
+  def hline(self, x, y, w, c):
+    ILI9341FB.hline(self, x, y, w, c)
+
+  def vline(self, x, y, h, c):
+    ILI9341FB.vline(self, x, y, h, c)
+
+  def line(self, x1, y1, x2, y2, c):
+    ILI9341FB.line(self, x1, y1, x2, y2, c)
+
+  def rect(self, x, y, w, h, c):
+    ILI9341FB.rect(self, x, y, w, h, c)
+
+  def fill_rect(self, x, y, w, h, c):
+    ILI9341FB.fill_rect(self, x, y, w, h, c)
+
+  def text(self, s, x, y, c = None):
+    ILI9341FB.text(self, s, x, y, c)
+
+  def scroll(self, xstep, ystep):
+    ILI9341FB.scroll(self, xstep, ystep)
+
+  def blit(self, fbuf, x, y, key = None):
+    ILI9341FB.blit(self, fbuf, x, y, key)
 
 

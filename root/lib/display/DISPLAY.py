@@ -1,5 +1,5 @@
 from machine import Pin, SPI
-from lib.display.ili934xnew import ILI9341FB, ILI9341, ILI9341FB
+from lib.display.ili934xnew import *
 from lib.display.displayext import *
 from lib.display.displaybase import *
 
@@ -57,12 +57,12 @@ def getdisplay(rotation=None):
 
   if _display is None:
     print('get new display, rotation = ', _rotation)
-    _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+    _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), rotation=_rotation)
   else:
     _display.spi = _spi
     if _rotation != _oldrotation:
       print('get new display, rotation = ', _rotation)
-      _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+      _display = ILI9341(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), rotation=_rotation)
   _oldrotation = _rotation
   return _display
 
@@ -80,22 +80,22 @@ def getbuffereddisplay(rotation=None):
 
   if _display is None:
     print('get new display, rotation = ', _rotation)
-    _display = ILI9341FBEx(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
+    _display = ILI9341FBEx(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), rotation=_rotation)
   else:
     if _rotation != _oldrotation:
       print('get new display, rotation = ', _rotation)
 
-      _display = ILI9341FBEx(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=240, height=320, rotation=_rotation)
+      _display = ILI9341FBEx(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), rotation=_rotation)
     else:
       _display.spi = _spi
 
   _oldrotation = _rotation
   return _display
-
-class FbSprite(SwappedFrameBuffer, DispExt):
+class FbSprite(SwappedFrameBuffer, DisplayExt):
 
   def __init__(self, width=240, height=320):
-    SwappedFrameBuffer.__init__(self, width=240, height=320)
+    SwappedFrameBuffer.__init__(self, width, height)
+    DisplayExt.__init__(self)
 
   def fill(self, c):
     SwappedFrameBuffer.fill(self, c)
@@ -128,70 +128,6 @@ class FbSprite(SwappedFrameBuffer, DispExt):
     SwappedFrameBuffer.blit(self, fbuf, x, y, key)
 
 
-
-class ILI9341FBEx(ILI9341FB, DispExt):
-
-  def __init__(self, spi, cs, dc, rst, width=240, height=320, rotation=0):
-    ILI9341FB.__init__(self, spi, cs, dc, rst, width, height, rotation)
-
-  def fill(self, c):
-    ILI9341FB.fill(self, c)
-
-  def pixel(self, x, y, c):
-    ILI9341FB.pixel(self, x, y, c)
-
-  def hline(self, x, y, w, c):
-    ILI9341FB.hline(self, x, y, w, c)
-
-  def vline(self, x, y, h, c):
-    ILI9341FB.vline(self, x, y, h, c)
-
-  def line(self, x1, y1, x2, y2, c):
-    ILI9341FB.line(self, x1, y1, x2, y2, c)
-
-  def rect(self, x, y, w, h, c):
-    ILI9341FB.rect(self, x, y, w, h, c)
-
-  def fill_rect(self, x, y, w, h, c):
-    ILI9341FB.fill_rect(self, x, y, w, h, c)
-
-  def text(self, s, x, y, c = None):
-    ILI9341FB.text(self, s, x, y, c)
-
-  def scroll(self, xstep, ystep):
-    ILI9341FB.scroll(self, xstep, ystep)
-
-  def blit(self, fbuf, x, y, key = None):
-    ILI9341FB.blit(self, fbuf, x, y, key)
-
-  # def __init__(self, width=240, height=320):
-  #   SwappedFrameBuffer.__init__(self, width, height)
-
-# def getbuffereddisplay(rotation=None):
-#   global _spi
-#   global _display
-#   global _speed   
-#   global _rotation
-#   global _oldrotation
-#   if _spi is None or _speed != FAST_SPI:
-#     _spi = getspi(FAST_SPI)
-
-#   from lib.display.ili934xnew import ILI9341, ILI9341Buffered
-
-#   if rotation != None:
-#     _rotation=rotation
-
-#   if _display is None:
-#     print('get new display, rotation = ', _rotation)
-#     _display = ILI9341Buffered(_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
-#   else:
-#     _display.ILI9341Bufferedspi = _spi
-#     if _rotation != _oldrotation:
-#       print('get new display, rotation = ', _rotation)
-#       _display = (_spi, cs=Pin(26), dc=Pin(5), rst=Pin(33), width=320, height=240, rotation=_rotation)
-#   _oldrotation = _rotation
-#   return _display
-
 def getspi(speed = FAST_SPI):
   global _spi
   global _speed
@@ -200,12 +136,10 @@ def getspi(speed = FAST_SPI):
     if speed == FAST_SPI:
       if _debugspi:
         print("SWITCH SPI to FAST")
-      #_spi = SPI(2, baudrate=20000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
       _spi = SPI(2, baudrate=15000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
     else: # if speed == SLOW_SPI:
       if _debugspi:
         print("SWITCH SPI to SLOW")
-      #_spi = SPI(2, baudrate=1000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
       _spi = SPI(2, baudrate=2000000, sck=Pin(18), mosi=Pin(23), miso=Pin(19))
     _speed = speed
   return _spi

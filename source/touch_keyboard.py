@@ -2,6 +2,7 @@
 
 from lib.display.DISPLAY import *
 
+
 class TouchKeyboard(object):
     """Touchscreen keyboard for ILI9341."""
 
@@ -51,8 +52,16 @@ class TouchKeyboard(object):
 
     def clear_text(self):
         """Clear the keyboard text."""
-        getdisplay().fill_hrect(0, 11, getdisplay().width, 24, 0)
+        getdisplay().fill_hrect(0, 11, getdisplay().width, self.font.height(), 0)
         self.kb_text = ''
+
+    def set_text(self, text):
+        self.kb_text = text
+        getdisplay().fill_hrect(0, 11, getdisplay().width, self.font.height(), 0)
+        getdisplay().set_pos(0, 11)
+        getdisplay().write(self.kb_text)
+
+
 
     def handle_keypress(self, x, y, debug=False):
         """Get  pressed key.
@@ -63,12 +72,19 @@ class TouchKeyboard(object):
             bool: True indicates return pressed otherwise False
         """
         if self.locked is True:
-            return
+            return False
 
         if self.waiting is True:
             self.clear_text()
             self.waiting = False
-            return
+            return False
+
+        key = self.raw_keypress(x, y, debug)
+        if key is not None:
+            return self.handle_key(key)
+        return False
+
+    def raw_keypress(self, x, y, debug=False):
 
         x, y = y, x  # Touch coordinates need to be swapped.
 
@@ -91,30 +107,37 @@ class TouchKeyboard(object):
                 else:
                     column = 1
 
-            key = self.KEYS[self.kb_screen][row][column]
+            return self.KEYS[self.kb_screen][row][column]
+        return None
 
-            if key == '\t' or key == '\f':
-                self.kb_screen ^= 1  # Toggle caps or flip symbol sets
-                self.load_keyboard()
-            elif key == '\a':
-                self.kb_screen = 0  # Switch to alphabet screen
-                self.load_keyboard()
-            elif key == '\n':
-                self.kb_screen = 2  # Switch to numeric / symbols screen
-                self.load_keyboard()
-            elif key == '\b':  # Backspace
-                self.kb_text = self.kb_text[:-1]
-                margin = self.font.measure_text(self.kb_text)
-                getdisplay().fill_vrect(margin, 11, 12, 24, 0)
-            elif key == '\r':
-                # Keyboard return pressed (start search)
-                if self.kb_text != '':
-                    return True
-            else:
-                margin = self.font.measure_text(self.kb_text)
-                self.kb_text += key
-                getdisplay().draw_letter(margin, 11, key, self.font,
-                                         self.YELLOW)
+    def handle_key(self, key):
+        if key == '\t' or key == '\f':
+            self.kb_screen ^= 1  # Toggle caps or flip symbol sets
+            self.load_keyboard()
+        elif key == '\a':
+            self.kb_screen = 0  # Switch to alphabet screen
+            self.load_keyboard()
+        elif key == '\n':
+            self.kb_screen = 2  # Switch to numeric / symbols screen
+            self.load_keyboard()
+        elif key == '\b':  # Backspace
+            marginold = self.font.get_width(self.kb_text)
+            self.kb_text = self.kb_text[:-1]
+#                margin = self.font.measure_text(self.kb_text)
+            margin = self.font.get_width(self.kb_text)
+            
+            getdisplay().fill_vrect(margin, 11, marginold - margin, self.font.height(), 0)
+        elif key == '\r':
+            # Keyboard return pressed (start search)
+            #if self.kb_text != '':
+            return True
+        else:
+            margin = self.font.get_width(self.kb_text)
+            #margin = self.font.measure_text(self.kb_text)
+            self.kb_text += key
+            #getdisplay().draw_letter(margin, 11, key, self.font, self.YELLOW)
+            getdisplay().set_pos(margin, 11)
+            getdisplay().write(key)
         return False
 
     def load_keyboard(self):
@@ -125,6 +148,10 @@ class TouchKeyboard(object):
     def show_message(self, msg, color):
         """Display message above keyboard."""
         self.clear_text()
-        msg_length = self.font.measure_text(msg)
-        margin = (getdisplay().width - msg_length) // 2
-        getdisplay().draw_text(margin, 11, msg, self.font, color)
+        msg_length = self.font.get_width(msg)
+        #msg_length = self.font.measure_text(msg)
+        display = getdisplay()
+        margin = (display.width - msg_length) // 2
+        display.set_pos(margin, 11)
+        display.set_color(color, 0)
+        display.write(msg)

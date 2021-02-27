@@ -12,6 +12,8 @@ def draw_crosshair(tft, x, y):
     tft.vline(x, y - 10, 20, color565(255, 0, 0))
 
 def calibrate():
+    setrotation(0)
+    getdisplay(0)
 
     width, height = getdisplay().get_screensize()
 

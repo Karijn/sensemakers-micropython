@@ -3,7 +3,7 @@ import network
 
 sta_if = network.WLAN(network.STA_IF)
 sta_if.active(True)
-sta_if.connect("MICSHOME", "Attcogb1!Wessing")
+sta_if.connect("SSID", "zeg ik niet")
 for i in range(100):
     if sta_if.isconnected():
         break

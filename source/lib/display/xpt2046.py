@@ -59,18 +59,20 @@ class TOUCH:
   #  DEFAULT_CAL = (-3917, -0.127, -3923, -0.1267, -3799, -0.07572, -3738,  -0.07814)
   DEFAULT_CAL = (-331,  0.06685,-366,   0.06873,-432,  0.09323,  -437,  0.09545)
 
+#  TOUCH_CS_PIN = const(17)
+  TOUCH_CS_PIN = const(27)
+  
   def __init__(self, controller="XPT2046", asyn=False, *, confidence=5, margin=50, delay=10, spi=None, rotation=None):
-    print('int new TOUCH')
-
-    # if spi is None:
-    #   self.spi = getspi(SLOW_SPI)
-    # else:
-    #   self.spi = spi
+    print('in new TOUCH, rotation=', rotation)
     self.spi = spi
-    self.cs = Pin(17, Pin.OUT)
+    print('before cs = Pin')
+    self.cs = Pin(TOUCH.TOUCH_CS_PIN, Pin.OUT)
+    print('before cs.value()')
     self.cs.value(1)
+    print('before allocate buffers')
     self.recv = bytearray(3)
     self.xmit = bytearray(3)
+    print('buffers allocated')
     # set default values
     self.ready = False
     self.touched = False
@@ -80,7 +82,10 @@ class TOUCH:
     self.rotation = 1
     cal = touch_calibrate# if calibration is None else calibration
     self.asynchronous = False
+
+    print('before touch_parameter')
     self.touch_parameter(confidence, margin, delay, cal)
+    print('after touch_parameter')
     if rotation != None:
       self.rotation=rotation
 
@@ -222,32 +227,32 @@ class TOUCH:
 
     #print(" rotation {} (x, y) ({}, {})".format(self.rotation, x, y), end="")
     if self.rotation == 0:
-      x = 240-x
+      x = x
       y = y
     elif self.rotation == 1:
       t = y
-      y = x
+      y = 240 -x
       x = t
     elif self.rotation == 2:
-      x = x
+      x = 240 - x
       y = 320 - y
     elif self.rotation == 3:
       t = 320 - y
-      y = 240 - x
+      y = x
       x = t
     elif self.rotation == 4:
-      x = 240-x
+      x = x
       y = 320-y
     elif self.rotation == 5:
       t = y
-      y = 240-x
+      y = x
       x = t
     elif self.rotation == 6:
-      x = x
+      x = 240-x
       y = y
     else: # 7
       t = 320 - y
-      y = x
+      y = 240-x
       x = t
 
     #print("(x, y) (", x, ", ", y, ")")
