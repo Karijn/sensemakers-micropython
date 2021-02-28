@@ -1,5 +1,5 @@
 from lib.display.DISPLAY import *
-from touch_keyboard import TouchKeyboard
+from lib.display.touch_keyboard import TouchKeyboard
 from lib.fonts import roboto_cond_reg_24
 from time import ticks_ms, ticks_diff, sleep_ms
 
@@ -18,6 +18,7 @@ showmessage = False
 while True:
     pos = gettouch().get_touch(initial=False, wait=False)
     if pos is not None:
+        print('touch at {}'.format(pos))
         ret = t.handle_keypress(pos[1], pos[0], False)
         # if ret:
         #     if showmessage:

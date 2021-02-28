@@ -61,8 +61,6 @@ class TouchKeyboard(object):
         getdisplay().set_pos(0, 11)
         getdisplay().write(self.kb_text)
 
-
-
     def handle_keypress(self, x, y, debug=False):
         """Get  pressed key.
 
@@ -133,11 +131,11 @@ class TouchKeyboard(object):
             return True
         else:
             margin = self.font.get_width(self.kb_text)
-            #margin = self.font.measure_text(self.kb_text)
-            self.kb_text += key
-            #getdisplay().draw_letter(margin, 11, key, self.font, self.YELLOW)
-            getdisplay().set_pos(margin, 11)
-            getdisplay().write(key)
+            if margin < 300:
+                #margin = self.font.measure_text(self.kb_text)
+                self.kb_text += key
+                getdisplay().set_pos(margin, 11)
+                getdisplay().write(key)
         return False
 
     def load_keyboard(self):

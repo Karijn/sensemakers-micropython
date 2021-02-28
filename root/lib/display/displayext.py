@@ -6,6 +6,7 @@ import lib.fonts.glcdfont
 def color565(r, g, b):
   return (r & 0xf8) << 8 | (g & 0xfc) << 3 | (b & 0xff) >> 3
 
+
 class DisplayExt():
 
   def __init__(self):
@@ -438,6 +439,81 @@ class DisplayExt():
   def set_color(self,fg,bg):
     self.bcolor = bg
     self.fcolor = fg
+
+  def triangle(self, x0, y0, x1, y1, x2, y2, color):
+    # Triangle drawing function.  Will draw a single pixel wide triangle
+    # around the points (x0, y0), (x1, y1), and (x2, y2).
+    self.line(x0, y0, x1, y1, color)
+    self.line(x1, y1, x2, y2, color)
+    self.line(x2, y2, x0, y0, color)
+
+  def fill_triangle(self, x0, y0, x1, y1, x2, y2, color):
+    # Filled triangle drawing function.  Will draw a filled triangle around
+    # the points (x0, y0), (x1, y1), and (x2, y2).
+    if y0 > y1:
+      y0, y1 = y1, y0
+      x0, x1 = x1, x0
+    if y1 > y2:
+      y2, y1 = y1, y2
+      x2, x1 = x1, x2
+    if y0 > y1:
+      y0, y1 = y1, y0
+      x0, x1 = x1, x0
+    a = 0
+    b = 0
+    y = 0
+    last = 0
+    if y0 == y2:
+      a = x0
+      b = x0
+      if x1 < a:
+        a = x1
+      elif x1 > b:
+        b = x1
+      if x2 < a:
+        a = x2
+      elif x2 > b:
+        b = x2
+      self.hline(a, y0, b-a+1, color)
+      return
+    dx01 = x1 - x0
+    dy01 = y1 - y0
+    dx02 = x2 - x0
+    dy02 = y2 - y0
+    dx12 = x2 - x1
+    dy12 = y2 - y1
+    if dy01 == 0:
+      dy01 = 1
+    if dy02 == 0:
+      dy02 = 1
+    if dy12 == 0:
+      dy12 = 1
+    sa = 0
+    sb = 0
+    if y1 == y2:
+      last = y1
+    else:
+      last = y1-1
+    for y in range(y0, last+1):
+      a = x0 + sa // dy01
+      b = x0 + sb // dy02
+      sa += dx01
+      sb += dx02
+      if a > b:
+        a, b = b, a
+      self.hline(a, y, b-a+1, color)
+    sa = dx12 * (y - y1)
+    sb = dx02 * (y - y0)
+    while y <= y2:
+      a = x1 + sa // dy12
+      b = x0 + sb // dy02
+      sa += dx12
+      sb += dx02
+      if a > b:
+        a, b = b, a
+      self.hline(a, y, b-a+1, color)
+      y += 1
+
 
   def set_pos(self,x,y):
     self._x = x
