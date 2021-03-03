@@ -875,7 +875,7 @@ class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
     y2 = self.height - 1
     # if self.is_off_grid(0, 0, x2, y2):
     #   return
-    self._writeblock(0, 0, x2, y2, self._buffer)
+    self._writeblock(0, 0, y2, x2, self._buffer)
 
   def draw_sprite(self, buf, x, y, w, h):
     """Draw a sprite (optimized for horizontal drawing).

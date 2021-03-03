@@ -36,4 +36,6 @@ def test():
     x, y, z = j.readxyz()
     print( 'X = {}, y = {}, z = {}'.format(x, y, z))
 
-test()
+
+if __name__ == '__main__':
+  test()
