@@ -490,7 +490,6 @@ class ILI9341(ILI9341Base, DisplayExt):
     self._scroll = 0
     self.scroll_y(0)
 
-
   def blit_buf(self, bitbuff, x, y, w, h):
     x = min(self.width - 1, max(0, x))
     y = min(self.height - 1, max(0, y))
@@ -659,67 +658,67 @@ class ILI9341(ILI9341Base, DisplayExt):
              buf)
 
 
-  # def load_sprite(self, path, w, h):
-  #   """Load sprite image.
+  def load_sprite(self, path, w, h):
+    """Load sprite image.
 
-  #   Args:
-  #     path (string): Image file path.
-  #     w (int): Width of image.
-  #     h (int): Height of image.
-  #   Notes:
-  #     w x h cannot exceed 2048
-  #   """
-  #   buf_size = w * h * 2
-  #   with open(path, "rb") as f:
-  #     return f.read(buf_size)
+    Args:
+      path (string): Image file path.
+      w (int): Width of image.
+      h (int): Height of image.
+    Notes:
+      w x h cannot exceed 2048
+    """
+    buf_size = w * h * 2
+    with open(path, "rb") as f:
+      return f.read(buf_size)
 
-  # def draw_sprite(self, buf, x, y, w, h):
-  #   """Draw a sprite (optimized for horizontal drawing).
+  def draw_sprite(self, buf, x, y, w, h):
+    """Draw a sprite (optimized for horizontal drawing).
 
-  #   Args:
-  #     buf (bytearray): Buffer to draw.
-  #     x (int): Starting X position.
-  #     y (int): Starting Y position.
-  #     w (int): Width of drawing.
-  #     h (int): Height of drawing.
-  #   """
-  #   x2 = x + w - 1
-  #   y2 = y + h - 1
-  #   if self.is_off_grid(x, y, x2, y2):
-  #     return
-  #   self._writeblock(x, y, x2, y2, buf)
+    Args:
+      buf (bytearray): Buffer to draw.
+      x (int): Starting X position.
+      y (int): Starting Y position.
+      w (int): Width of drawing.
+      h (int): Height of drawing.
+    """
+    x2 = x + w - 1
+    y2 = y + h - 1
+    if self.is_off_grid(x, y, x2, y2):
+      return
+    self._writeblock(x, y, x2, y2, buf)
 
-  # def draw_image(self, path, x=0, y=0, w=320, h=240):
-  #   """Draw image from flash.
+  def draw_image(self, path, x=0, y=0, w=320, h=240):
+    """Draw image from flash.
 
-  #   Args:
-  #     path (string): Image file path.
-  #     x (int): X coordinate of image left.  Default is 0.
-  #     y (int): Y coordinate of image top.  Default is 0.
-  #     w (int): Width of image.  Default is 320.
-  #     h (int): Height of image.  Default is 240.
-  #   """
-  #   x2 = x + w - 1
-  #   y2 = y + h - 1
-  #   if self.is_off_grid(x, y, x2, y2):
-  #     return
-  #   with open(path, "rb") as f:
-  #     chunk_height = 1024 // w
-  #     chunk_count, remainder = divmod(h, chunk_height)
-  #     chunk_size = chunk_height * w * 2
-  #     chunk_y = y
-  #     if chunk_count:
-  #       for c in range(0, chunk_count):
-  #         buf = f.read(chunk_size)
-  #         self._writeblock(x, chunk_y,
-  #                x2, chunk_y + chunk_height - 1,
-  #                buf)
-  #         chunk_y += chunk_height
-  #     if remainder:
-  #       buf = f.read(remainder * w * 2)
-  #       self._writeblock(x, chunk_y,
-  #              x2, chunk_y + remainder - 1,
-  #              buf)
+    Args:
+      path (string): Image file path.
+      x (int): X coordinate of image left.  Default is 0.
+      y (int): Y coordinate of image top.  Default is 0.
+      w (int): Width of image.  Default is 320.
+      h (int): Height of image.  Default is 240.
+    """
+    x2 = x + w - 1
+    y2 = y + h - 1
+    if self.is_off_grid(x, y, x2, y2):
+      return
+    with open(path, "rb") as f:
+      chunk_height = 1024 // w
+      chunk_count, remainder = divmod(h, chunk_height)
+      chunk_size = chunk_height * w * 2
+      chunk_y = y
+      if chunk_count:
+        for c in range(0, chunk_count):
+          buf = f.read(chunk_size)
+          self._writeblock(x, chunk_y,
+                 x2, chunk_y + chunk_height - 1,
+                 buf)
+          chunk_y += chunk_height
+      if remainder:
+        buf = f.read(remainder * w * 2)
+        self._writeblock(x, chunk_y,
+               x2, chunk_y + remainder - 1,
+               buf)
 
 class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
 

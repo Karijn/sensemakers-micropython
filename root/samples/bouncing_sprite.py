@@ -94,7 +94,7 @@ class BouncingSprite(object):
 def test():
   """Bouncing sprite."""
   try:
-    display = getdisplay()
+    display = getdisplay(2)
     display.clear(0)
     
     # Load sprite
