@@ -12,21 +12,21 @@ from lib.display.colors import *
 class Avg:
   def __init__(self, maxItems):
     self._avgArray = []
-    self._add = 0
+    self._arrayTotal = 0
     self._maxItems = maxItems
 
   def Add(self, val):
     self._avgArray.append(val)
-    self._add += val
+    self._arrayTotal += val
     if(len(self._avgArray) > self._maxItems):
       m = self._avgArray.pop(0)
-      self._add -= m
+      self._arrayTotal -= m
 
   def Get(self):
     l = len(self._avgArray)
     if l == 0:
       return 0
-    return self._add / l
+    return self._arrayTotal / l
 
   def All(self):
     return self._avgArray
@@ -143,6 +143,12 @@ def make_point_array(values, minval, maxval, top, bottom):
 
 @timed_function
 def show_temp_hum(display, sht):
+  """
+  Show the temparature and humidity charts.
+  parameters:
+    display: the display to show the charts on.
+    sht: the SHT30 sensor.
+  """
   global temps
   global hums
   global tempAvg
