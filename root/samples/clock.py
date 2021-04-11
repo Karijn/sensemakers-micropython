@@ -9,27 +9,30 @@ from lib.debug.timings import timed_function
 from lib.sensors import sht30
 from lib.display.colors import *
 
+""" Class Avg is meant to constantly calculate the average of the temperature/humidity values.
+ If the maximum amount of values in the array ('maxItems') is reached, the oldest value in the Array will be removed."""
+
 class Avg:
   def __init__(self, maxItems):
     self._avgArray = []
     self._arrayTotal = 0
-    self._maxItems = maxItems
+    self._maxItems = maxItems                   # Maximum amount of values in the Array
 
   def Add(self, val):
-    self._avgArray.append(val)
-    self._arrayTotal += val
-    if(len(self._avgArray) > self._maxItems):
-      m = self._avgArray.pop(0)
-      self._arrayTotal -= m
+    self._avgArray.append(val)                  # Appends the newest value to the Array
+    self._arrayTotal += val                     # Adds the newest value to the sum of all values in Array
+    if(len(self._avgArray) > self._maxItems):   # 'len(self._avgArray)' = amount of values in Array. If this amount is greater than maxItems:
+      m = self._avgArray.pop(0)                 # The pop() method removes the oldest value (at index 0) from the Array
+      self._arrayTotal -= m                     # The oldest value is substracted from the sum of all values
 
-  def Get(self):
+  def Get(self):                                # Calculates the Average of all values in Array
     l = len(self._avgArray)
     if l == 0:
       return 0
-    return self._arrayTotal / l
+    return self._arrayTotal / l                 # Average = Sum of values / total amount of values
 
   def All(self):
-    return self._avgArray
+    return self._avgArray                       # Returns whole Array
 
 
 
@@ -65,9 +68,8 @@ tempAvg = None
 humAvg = None
 
 
-
-def rotate_point(point, angle, center_point=(0, 0)):
-  """Rotates a point around center_point(origin by default)
+def rotate_point(point, angle, center_point=(0, 0)):           
+  """ Point on the clock's big hand. This point rotates around center_point(origin by default)
   Angle is in degrees.
   Rotation is counter-clockwise
   """
@@ -81,8 +83,7 @@ def rotate_point(point, angle, center_point=(0, 0)):
   return new_point
 
 def rotate_polygon(polygon, angle, center_point=(0, 0)):
-  """Rotates the given polygon which consists of corners represented as (x,y)
-  around center_point (origin by default)
+  """Polygon consists of all points on the line/hand. Rotates the given polygon around center_point (origin by default)
   Rotation is counter-clockwise
   Angle is in degrees
   """
@@ -93,7 +94,7 @@ def rotate_polygon(polygon, angle, center_point=(0, 0)):
   return rotated_polygon
 
 @timed_function
-def create_clock_sprite():
+def create_clock_sprite():                           #clock_sprite is the shape of the clock (without hands)
   color = color565(255, 255, 0)
   clock_sprite = FbSprite(r4*2, r4*2)
   clock_sprite.draw_circle(r4, r4, 3, color)
@@ -112,11 +113,11 @@ def create_clock_sprite():
   return clock_sprite
 
 @timed_function
-def show_clock(display, clock_sprite, x, y):
+def show_clock(display, clock_sprite, x, y):       # Copies the clock_sprite to the screen
   display.blit( clock_sprite, x, y)
 
 @timed_function
-def show_clock_hands(display, t, x, y):
+def show_clock_hands(display, t, x, y):            # Shows clock hands, rotates them around the center point of the clock 
   nsecs_lines = rotate_polygon(def_secs_lines, 180 + t[5] * 6, center_point=(x, y))
   nmins_lines = rotate_polygon(def_mins_lines, 180 + t[4] * 6, center_point=(x, y))
   nhour_lines = rotate_polygon(def_hour_lines, 180 + t[3] * 30, center_point=(x, y))
@@ -132,7 +133,7 @@ def map(x, in_min, in_max, out_min, out_max):
   #print ('{} = map({}, {}, {}, {}, {}) (div = {})'.format(out, x, in_min, in_max, out_min, out_max, div))
   return out
 
-def make_point_array(values, minval, maxval, top, bottom):
+def make_point_array(values, minval, maxval, top, bottom): #Makes charts of the temperature and humidity values
   index = 60
   pointsval = []
   for val in values:
@@ -161,8 +162,8 @@ def show_temp_hum(display, sht):
   temps.Add(int(tempAvg.Get()))
   hums.Add(int(humAvg.Get()))
 
-  mintemp = min(temps.All())
-  maxtemp = max(temps.All())
+  mintemp = min(temps.All())        #the min() function returns the lowest number in the Array
+  maxtemp = max(temps.All())        #the max() function returns the highest number in the Array
   minhum = min(hums.All())
   maxhum = max(hums.All())
   tpoints = make_point_array(temps.All(), mintemp, maxtemp, 255, 215)
@@ -197,7 +198,7 @@ def clock():
 
   currenttime = [0, 0, 0, 0, 0, 0]
   # 1st time init
-  temps = Avg(60)
+  temps = Avg(60)         #Create an Instance of Class Avg, set parameter MaxItems to 60
   hums = Avg(60)
   tempAvg = Avg(60)
   humAvg = Avg(60)
