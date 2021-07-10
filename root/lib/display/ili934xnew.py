@@ -134,42 +134,42 @@ class ILI9341Base(_ILIConstants):
       (_PWCTRL2, b"\x10"),
       (_VMCTRL1, b"\x3e\x28"),
       (_VMCTRL2, b"\x86")):
-      self .write_cmd(command, data)
+      self.write_cmd(command, data)
 
     if self.rotation == 0:          # 0 deg
-      self .write_cmd(self.MADCTL, b"\x48")
+      self.write_cmd(self.MADCTL, b"\x48")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 1:        # 90 deg
-      self .write_cmd(self.MADCTL, b"\x28")
+      self.write_cmd(self.MADCTL, b"\x28")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 2:        # 180 deg
-      self .write_cmd(self.MADCTL, b"\x88")
+      self.write_cmd(self.MADCTL, b"\x88")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 3:        # 270 deg
-      self .write_cmd(self.MADCTL, b"\xE8")
+      self.write_cmd(self.MADCTL, b"\xE8")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 4:        # Mirrored + 0 deg
-      self .write_cmd(self.MADCTL, b"\xC8")
+      self.write_cmd(self.MADCTL, b"\xC8")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 5:        # Mirrored + 90 deg
-      self .write_cmd(self.MADCTL, b"\x68")
+      self.write_cmd(self.MADCTL, b"\x68")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 6:        # Mirrored + 180 deg
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 7:        # Mirrored + 270 deg
-      self .write_cmd(self.MADCTL, b"\xA8")
+      self.write_cmd(self.MADCTL, b"\xA8")
       self.width = self._init_width
       self.height = self._init_height
     else:
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
 
     for command, data in (
       (self.PIXFMT, b"\x55"),
@@ -179,10 +179,10 @@ class ILI9341Base(_ILIConstants):
       (self.GAMMASET, b"\x01"),
       (_PGAMCTRL, b"\x0f\x31\x2b\x0c\x0e\x08\x4e\xf1\x37\x07\x10\x03\x0e\x09\x00"),
       (_NGAMCTRL, b"\x00\x0e\x14\x03\x11\x07\x31\xc1\x48\x08\x0f\x0c\x31\x36\x0f")):
-      self .write_cmd(command, data)
-    self .write_cmd(self.SLPOUT)
+      self.write_cmd(command, data)
+    self.write_cmd(self.SLPOUT)
     time.sleep_ms(120)
-    self .write_cmd(self.DISPLAY_ON)
+    self.write_cmd(self.DISPLAY_ON)
 
   def write_cmd(self, command, data=None):
     self.dc(0)
@@ -219,8 +219,8 @@ class ILI9341Base(_ILIConstants):
     self.write_cmd(self.WRITE_RAM, data)
 
   def _readblock(self, x0, y0, x1, y1):
-    self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
-    self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
     #if data is None:
     return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
 
@@ -532,7 +532,7 @@ class ILI9341(ILI9341Base, DisplayExt):
 
   def scroll_y(self, dy):
     self._scroll = (self._scroll + dy) % self.height
-    self .write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
+    self.write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
 
   def next_line(self, cury, char_h):
     global scrolling
@@ -765,42 +765,42 @@ class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
       (_PWCTRL2, b"\x10"),
       (_VMCTRL1, b"\x3e\x28"),
       (_VMCTRL2, b"\x86")):
-      self .write_cmd(command, data)
+      self.write_cmd(command, data)
 
     if self.rotation == 0:          # 0 deg
-      self .write_cmd(self.MADCTL, b"\x48")
+      self.write_cmd(self.MADCTL, b"\x48")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 1:        # 90 deg
-      self .write_cmd(self.MADCTL, b"\x28")
+      self.write_cmd(self.MADCTL, b"\x28")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 2:        # 180 deg
-      self .write_cmd(self.MADCTL, b"\x88")
+      self.write_cmd(self.MADCTL, b"\x88")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 3:        # 270 deg
-      self .write_cmd(self.MADCTL, b"\xE8")
+      self.write_cmd(self.MADCTL, b"\xE8")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 4:        # Mirrored + 0 deg
-      self .write_cmd(self.MADCTL, b"\xC8")
+      self.write_cmd(self.MADCTL, b"\xC8")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 5:        # Mirrored + 90 deg
-      self .write_cmd(self.MADCTL, b"\x68")
+      self.write_cmd(self.MADCTL, b"\x68")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 6:        # Mirrored + 180 deg
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 7:        # Mirrored + 270 deg
-      self .write_cmd(self.MADCTL, b"\xA8")
+      self.write_cmd(self.MADCTL, b"\xA8")
       self.width = self._init_width
       self.height = self._init_height
     else:
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
 
     for command, data in (
       (self.PIXFMT, b"\x55"),
@@ -810,10 +810,10 @@ class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
       (self.GAMMASET, b"\x01"),
       (_PGAMCTRL, b"\x0f\x31\x2b\x0c\x0e\x08\x4e\xf1\x37\x07\x10\x03\x0e\x09\x00"),
       (_NGAMCTRL, b"\x00\x0e\x14\x03\x11\x07\x31\xc1\x48\x08\x0f\x0c\x31\x36\x0f")):
-      self .write_cmd(command, data)
-    self .write_cmd(self.SLPOUT)
+      self.write_cmd(command, data)
+    self.write_cmd(self.SLPOUT)
     time.sleep_ms(120)
-    self .write_cmd(self.DISPLAY_ON)
+    self.write_cmd(self.DISPLAY_ON)
 
   def write_cmd(self, command, data=None):
     self.dc(0)
@@ -850,8 +850,8 @@ class ILI9341FB(SwappedFrameBuffer, _ILIConstants):
     self.write_cmd(self.WRITE_RAM, data)
 
   def _readblock(self, x0, y0, x1, y1):
-    self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
-    self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
     #if data is None:
     return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
 
@@ -1082,42 +1082,42 @@ class ILI9341x(_ILIConstants):
       (_PWCTRL2, b"\x10"),
       (_VMCTRL1, b"\x3e\x28"),
       (_VMCTRL2, b"\x86")):
-      self .write_cmd(command, data)
+      self.write_cmd(command, data)
 
     if self.rotation == 0:          # 0 deg
-      self .write_cmd(self.MADCTL, b"\x48")
+      self.write_cmd(self.MADCTL, b"\x48")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 1:        # 90 deg
-      self .write_cmd(self.MADCTL, b"\x28")
+      self.write_cmd(self.MADCTL, b"\x28")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 2:        # 180 deg
-      self .write_cmd(self.MADCTL, b"\x88")
+      self.write_cmd(self.MADCTL, b"\x88")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 3:        # 270 deg
-      self .write_cmd(self.MADCTL, b"\xE8")
+      self.write_cmd(self.MADCTL, b"\xE8")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 4:        # Mirrored + 0 deg
-      self .write_cmd(self.MADCTL, b"\xC8")
+      self.write_cmd(self.MADCTL, b"\xC8")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 5:        # Mirrored + 90 deg
-      self .write_cmd(self.MADCTL, b"\x68")
+      self.write_cmd(self.MADCTL, b"\x68")
       self.width = self._init_width
       self.height = self._init_height
     elif self.rotation == 6:        # Mirrored + 180 deg
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
       self.width = self._init_height
       self.height = self._init_width
     elif self.rotation == 7:        # Mirrored + 270 deg
-      self .write_cmd(self.MADCTL, b"\xA8")
+      self.write_cmd(self.MADCTL, b"\xA8")
       self.width = self._init_width
       self.height = self._init_height
     else:
-      self .write_cmd(self.MADCTL, b"\x08")
+      self.write_cmd(self.MADCTL, b"\x08")
 
     for command, data in (
       (self.PIXFMT, b"\x55"),
@@ -1127,10 +1127,10 @@ class ILI9341x(_ILIConstants):
       (self.GAMMASET, b"\x01"),
       (_PGAMCTRL, b"\x0f\x31\x2b\x0c\x0e\x08\x4e\xf1\x37\x07\x10\x03\x0e\x09\x00"),
       (_NGAMCTRL, b"\x00\x0e\x14\x03\x11\x07\x31\xc1\x48\x08\x0f\x0c\x31\x36\x0f")):
-      self .write_cmd(command, data)
-    self .write_cmd(self.SLPOUT)
+      self.write_cmd(command, data)
+    self.write_cmd(self.SLPOUT)
     time.sleep_ms(120)
-    self .write_cmd(self.DISPLAY_ON)
+    self.write_cmd(self.DISPLAY_ON)
 
   def reset(self):
     self.rst(0)
@@ -1174,8 +1174,8 @@ class ILI9341x(_ILIConstants):
     self.write_cmd(self.WRITE_RAM, data)
 
   def _readblock(self, x0, y0, x1, y1):
-    self .write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
-    self .write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
+    self.write_cmd(self.SET_COLUMN, ustruct.pack(">HH", x0, x1))
+    self.write_cmd(self.SET_PAGE, ustruct.pack(">HH", y0, y1))
     #if data is None:
     return self._read(self.READ_RAM, (x1 - x0 + 1) * (y1 - y0 + 1) * 3)
 
@@ -1295,7 +1295,7 @@ class ILI9341x(_ILIConstants):
 
   def scroll(self, dy):
     self._scroll = (self._scroll + dy) % self.height
-    self .write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
+    self.write_cmd(self.VSCRSADD, ustruct.pack(">H", self._scroll))
 
   def next_line(self, cury, char_h):
     global scrolling
