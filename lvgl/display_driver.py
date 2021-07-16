@@ -1,5 +1,5 @@
 import lvgl as lv
-import lvesp32
+#import lvesp32
 from ili9XXX import ili9341, LANDSCAPE, PORTRAIT
 from xpt2046 import xpt2046
 
@@ -15,14 +15,14 @@ touch = None
 def getdisplay():
     global display
     global touch
-    return getdisplay_portrait()
+    return getdisplay_landscape()
 
 def getdisplay_landscape():
     global display
     global touch
     # Import ILI9341 driver and initialized it
     #display = ili9341(miso=19, mosi=23, clk=18, cs=26, dc=5, rst=33, power=-1, backlight=-1, mhz=40, factor=4, hybrid=False, rot=LANDSCAPE)
-    displat = ili9341(miso=19, mosi=23, clk=18, cs=26, dc=5, rst=33, power=-1, backlight=-1, mhz=40, factor=4, hybrid=True, width=320, height=240, rot=LANDSCAPE)
+    display = ili9341(miso=19, mosi=23, clk=18, cs=26, dc=5, rst=33, power=-1, backlight=-1, mhz=40, factor=4, hybrid=True, width=320, height=240, rot=LANDSCAPE)
 
     # Import XPT2046 driver and initalize it
     #touch = xpt2046(cs=27, transpose=False, cal_x0=258, cal_y0=420, cal_x1=3884, cal_y1=3945)
