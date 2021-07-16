@@ -27,6 +27,7 @@ def getdisplay_landscape():
     # Import XPT2046 driver and initalize it
     #touch = xpt2046(cs=27, transpose=False, cal_x0=258, cal_y0=420, cal_x1=3884, cal_y1=3945)
     touch = xpt2046(cs=27, transpose=False, cal_x0=3865, cal_y0=329, cal_x1=399, cal_y1=3870)
+    print("Display in landscape mode")
 
 def getdisplay_portrait():
     global display
@@ -39,18 +40,8 @@ def getdisplay_portrait():
 
     # Import XPT2046 driver and initalize it
     touch = xpt2046(cs=27, transpose=True, cal_x0=258, cal_y0=420, cal_x1=3884, cal_y1=3945)
-
-def get_button(text = '', scr=lv.scr_act(), align=lv.ALIGN.CENTER, dx=0, dy=0):
-    b = lv.btn(scr)
-    if align is not None:
-        b.align(scr, align, dx, dy)
-    if text is not None:
-        l = lv.label(b)
-        l.set_text(text)
-    return b
-
+    print("Display in portrait mode")
 
 lv.init()
-getdisplay()
 
 
