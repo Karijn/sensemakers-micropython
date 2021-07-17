@@ -5,9 +5,6 @@ import display_driver
 
 display_driver.getdisplay_landscape()
 
-#!/opt/bin/lv_micropython -i
-import lvgl as lv
-import display_driver
 def set_value(bar, v):
     bar.set_value(v, lv.ANIM.OFF)
 

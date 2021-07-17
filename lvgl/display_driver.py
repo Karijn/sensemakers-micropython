@@ -8,7 +8,6 @@ MADCTL_MX = const(0x40)
 MADCTL_ML = const(0x10)
 MADCTL_MH = const(0x04)
 
-
 display = None
 touch = None
 
